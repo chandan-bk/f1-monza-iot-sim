@@ -1053,11 +1053,11 @@ class CircuitTrack {
 
     const frontSign = new THREE.Mesh(signGeo, signMat);
     frontSign.position.set(0, 8.4, -1.62);
+    frontSign.rotation.y = Math.PI;
     bridgeGroup.add(frontSign);
 
     const backSign = new THREE.Mesh(signGeo, signMat);
     backSign.position.set(0, 8.4, 1.62);
-    backSign.rotation.y = Math.PI;
     bridgeGroup.add(backSign);
 
     bridgeGroup.position.set(pt.x, pt.y, pt.z);
@@ -1094,8 +1094,8 @@ class CircuitTrack {
 
   // 13. Start Gantry with 5 Red Lights
   buildPitLaneAndGantry() {
-    const pt = this.curve.getPointAt(0);
-    const tangent = this.curve.getTangentAt(0);
+    const pt = this.curve.getPointAt(0.018);
+    const tangent = this.curve.getTangentAt(0.018);
 
     const gantryGroup = new THREE.Group();
 

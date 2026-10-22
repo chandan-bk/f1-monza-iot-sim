@@ -144,6 +144,10 @@ class F1SimApp {
     this.scene.add(dirLight);
 
     window.addEventListener('resize', () => this.onWindowResize());
+    if (window.ResizeObserver && this.container) {
+      const ro = new ResizeObserver(() => this.onWindowResize());
+      ro.observe(this.container);
+    }
   }
 
   setupAudio() {
@@ -386,7 +390,7 @@ class F1SimApp {
     if (btnQuickCam) btnQuickCam.onclick = () => this.toggleCamera();
 
     if (btnLayoutDriver) btnLayoutDriver.onclick = () => this.setViewLayout('DRIVER_ONLY');
-    if (btnLayoutSplit) btnLayoutSplit.onclick = () => this.setViewLayout('SPLIT');
+    if (btnLayoutSplit) btnLayoutSplit.onclick = () => this.setViewLayout('DRIVER_ONLY');
     if (btnLayoutEngineer) btnLayoutEngineer.onclick = () => this.setViewLayout('ENGINEER_ONLY');
 
     const btnMute = document.getElementById('btn-audio-mute');
@@ -414,7 +418,7 @@ class F1SimApp {
     // Configure Autonomous Driving Mode
     if (mode === 'AUTONOMOUS_RACE') {
       this.autoDrive = true;
-      this.cameraMode = 'CHASE'; // Dynamic chase camera view ideal for autonomous demonstration
+      this.cameraMode = 'COCKPIT'; // Authentic Driver POV through Halo structure
     } else {
       this.autoDrive = false;
       this.cameraMode = 'COCKPIT';
@@ -442,7 +446,7 @@ class F1SimApp {
     }
 
     this.showScreen('screen-race');
-    this.setViewLayout('SPLIT');
+    this.setViewLayout('DRIVER_ONLY');
   }
 
   showScreen(screenId) {
@@ -477,7 +481,10 @@ class F1SimApp {
       pitwallWrapper.classList.add('view-split-right');
     }
 
-    setTimeout(() => this.onWindowResize(), 50);
+    this.onWindowResize();
+    requestAnimationFrame(() => this.onWindowResize());
+    setTimeout(() => this.onWindowResize(), 100);
+    setTimeout(() => this.onWindowResize(), 300);
   }
 
   cycleViewLayout() {
@@ -762,7 +769,9 @@ class F1SimApp {
     cars.forEach((c, idx) => {
       const pos = idx + 1;
       if (c.isPlayer && posEl) posEl.textContent = `POS P${pos}`;
-      const gap = idx === 0 ? "LEAD" : `+${((leaderDist - c.totalDist) / Math.max(15, c.p.speed)).toFixed(2)}s`;
+      const distDiff = Math.max(0, leaderDist - c.totalDist);
+      const speed = Math.max(25, c.p.speed);
+      const gap = idx === 0 ? "LEAD" : `+${(distDiff / speed).toFixed(2)}s`;
       const isYou = c.isPlayer ? 'is-player' : '';
       html += `
         <div class="tower-row ${isYou}">
@@ -839,7 +848,7 @@ class F1SimApp {
     });
 
     if (this.cameraMode === 'COCKPIT') {
-      // True Driver POV through Halo Hoop & Over 3D Steering Wheel
+      // True Driver POV through Halo Hoop & Over 3D Steering Wheel (Reference Images 1, 2 & 3)
       if (monitoredModel && monitoredModel.setHelmetVisible) {
         monitoredModel.setHelmetVisible(false);
       }
@@ -847,49 +856,40 @@ class F1SimApp {
       const forwardZ = Math.cos(p.heading);
       const normalX = Math.cos(p.heading);
       const normalZ = -Math.sin(p.heading);
-      const eyeHeight = 0.63;
 
-      // 1. Dynamic G-Force Driver Head Simulation (Braking dip, accel pushback, corner sway)
-      const longiHeadOffset = THREE.MathUtils.clamp(-p.longitudinalG * 0.032, -0.05, 0.07);
-      const verticalHeadOffset = THREE.MathUtils.clamp(p.longitudinalG * 0.015, -0.025, 0.01);
-      const lateralHeadOffset = THREE.MathUtils.clamp(-p.lateralG * 0.020, -0.06, 0.06);
+      // Authentic driver eye height & seating position through Halo
+      const eyeHeight = 0.90;
+      const forwardDist = 0.08;
 
-      // 2. High-speed Ground Effect Chassis Rumble & Kerb Vibration
+      // Dynamic G-force driver head sway & vibration
+      const longiHeadOffset = THREE.MathUtils.clamp(-p.longitudinalG * 0.018, -0.03, 0.03);
+      const lateralHeadOffset = THREE.MathUtils.clamp(-p.lateralG * 0.015, -0.04, 0.04);
+
       const now = performance.now() * 0.001;
       let vibration = 0;
       if (p.speedKmh > 140) {
-        vibration = Math.sin(now * 36) * (p.speedKmh / 350) * 0.006;
+        vibration = Math.sin(now * 36) * (p.speedKmh / 350) * 0.004;
       }
       if (p.trackProgress && p.trackProgress.isOnKerb && p.speedKmh > 25) {
-        vibration += Math.sin(now * 52) * 0.024; // High frequency rumble kerb bounce
-      }
-
-      // Barrier collision impact rumble
-      let barrierShake = 0;
-      if (p.barrierImpactTimer > 0) {
-        barrierShake = (p.barrierImpactTimer / 0.8) * 0.12;
+        vibration += Math.sin(now * 52) * 0.018;
       }
 
       this.camera.position.set(
-        p.position.x + forwardX * (0.14 + longiHeadOffset) + (normalX * lateralHeadOffset) + ((Math.random() - 0.5) * barrierShake),
-        p.position.y + eyeHeight + verticalHeadOffset + vibration + ((Math.random() - 0.5) * barrierShake),
-        p.position.z + forwardZ * (0.14 + longiHeadOffset) + (normalZ * lateralHeadOffset) + ((Math.random() - 0.5) * barrierShake)
+        p.position.x + (forwardX * (forwardDist + longiHeadOffset)) + (normalX * lateralHeadOffset),
+        p.position.y + eyeHeight + vibration,
+        p.position.z + (forwardZ * (forwardDist + longiHeadOffset)) + (normalZ * lateralHeadOffset)
       );
 
-      // 3. Driver Look-Ahead (Apex Targeting into Corners)
-      const apexLookFactor = p.steerAngle * 10.0;
-      const targetLookX = forwardX + (normalX * apexLookFactor * 0.22);
-      const targetLookZ = forwardZ + (normalZ * apexLookFactor * 0.22);
-
+      // Driver look-ahead with apex tracking
       const lookTarget = new THREE.Vector3(
-        p.position.x + targetLookX * 45.0,
-        p.position.y + eyeHeight - 0.07 + (verticalHeadOffset * 0.5),
-        p.position.z + targetLookZ * 45.0
+        p.position.x + forwardX * 70.0 + (normalX * p.steerAngle * 4.0),
+        p.position.y + eyeHeight - 0.12,
+        p.position.z + forwardZ * 70.0 + (normalZ * p.steerAngle * 4.0)
       );
       this.camera.lookAt(lookTarget);
 
-      // 4. Dynamic Speed Tunnel FOV Expansion (Visceral Speed Warp)
-      const targetFov = 74 + (p.speedKmh / 350) * 14;
+      // Speed FOV expansion
+      const targetFov = 76 + (p.speedKmh / 350) * 12;
       this.camera.fov += (targetFov - this.camera.fov) * Math.min(1.0, dt * 6.0);
       this.camera.updateProjectionMatrix();
 

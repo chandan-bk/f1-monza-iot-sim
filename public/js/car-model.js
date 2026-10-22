@@ -41,6 +41,9 @@ class F1CarModel {
     this.wheelLcdCanvas.height = 160;
     this.wheelLcdCtx = this.wheelLcdCanvas.getContext('2d');
     this.wheelLcdTexture = new THREE.CanvasTexture(this.wheelLcdCanvas);
+    this.wheelLcdTexture.wrapS = THREE.RepeatWrapping;
+    this.wheelLcdTexture.repeat.x = -1;
+    this.wheelLcdTexture.offset.x = 1;
     this.wheelLcdMaterial = new THREE.MeshBasicMaterial({ map: this.wheelLcdTexture });
 
     // Procedural Fallback Placeholder (shown instantly while GLTF loads)
@@ -207,29 +210,28 @@ class F1CarModel {
     // Added directly to this.steeringAssembly so the gloves turn with the wheel!
     const gloveMat = new THREE.MeshStandardMaterial({ color: gloveColor, roughness: 0.65, metalness: 0.15 });
 
-    [-0.125, 0.125].forEach((x, idx) => {
-      // Main glove palm & knuckle wrap on wheel rim
-      const handGeo = new THREE.SphereGeometry(0.038, 14, 14);
-      handGeo.scale(1.0, 1.25, 0.85);
-      const hand = new THREE.Mesh(handGeo, gloveMat);
-      hand.position.set(x, 0.005, 0.012);
+const gloveBaseMat = new THREE.MeshStandardMaterial({ color: 0x16181d, roughness: 0.7, metalness: 0.1 });
+    [-0.13, 0.13].forEach((x, idx) => {
+      // Ergonomic gloved hand wrapping around steering wheel grip
+      const handGeo = new THREE.SphereGeometry(0.032, 16, 16);
+      handGeo.scale(0.9, 1.2, 0.95);
+      const hand = new THREE.Mesh(handGeo, gloveBaseMat);
+      hand.position.set(x, 0.002, 0.010);
       this.steeringAssembly.add(hand);
 
-      // Thumb wrapped over wheel rim
-      const thumbGeo = new THREE.CylinderGeometry(0.012, 0.014, 0.045, 8);
-      thumbGeo.rotateZ(idx === 0 ? 0.6 : -0.6);
-      thumbGeo.rotateX(0.4);
-      const thumb = new THREE.Mesh(thumbGeo, gloveMat);
-      thumb.position.set(x + (idx === 0 ? 0.022 : -0.022), 0.026, 0.022);
-      this.steeringAssembly.add(thumb);
+      // Team color accent strip across knuckles
+      const knuckleGeo = new THREE.BoxGeometry(0.024, 0.012, 0.035);
+      const knuckle = new THREE.Mesh(knuckleGeo, gloveMat);
+      knuckle.position.set(x, 0.020, 0.008);
+      this.steeringAssembly.add(knuckle);
 
-      // Race suit forearm sleeve running back to the cockpit tub
-      const armGeo = new THREE.CylinderGeometry(0.034, 0.044, 0.38, 12);
-      armGeo.rotateX(Math.PI / 2.3);
-      armGeo.rotateY(idx === 0 ? -0.15 : 0.15);
-      const arm = new THREE.Mesh(armGeo, gloveMat);
-      arm.position.set(x + (idx === 0 ? -0.02 : 0.02), -0.12, -0.18);
-      this.steeringAssembly.add(arm);
+      // Thumb grip securely resting on wheel inner thumb-rest
+      const thumbGeo = new THREE.CylinderGeometry(0.009, 0.011, 0.036, 10);
+      thumbGeo.rotateZ(idx === 0 ? 0.5 : -0.5);
+      thumbGeo.rotateX(0.3);
+      const thumb = new THREE.Mesh(thumbGeo, gloveMat);
+      thumb.position.set(x + (idx === 0 ? 0.018 : -0.018), 0.022, 0.018);
+      this.steeringAssembly.add(thumb);
     });
   }
 
