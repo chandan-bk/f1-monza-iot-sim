@@ -654,16 +654,26 @@ class CircuitTrack {
         norm.push(-normal.x * sign, 0, -normal.z * sign);
         norm.push(-normal.x * sign, 0, -normal.z * sign);
 
-        uvs.push(u * 24, 0);
-        uvs.push(u * 24, 1);
+        if (sign === 1) {
+          uvs.push((1 - u) * 24, 0);
+          uvs.push((1 - u) * 24, 1);
+        } else {
+          uvs.push(u * 24, 0);
+          uvs.push(u * 24, 1);
+        }
 
         if (i < segments) {
           const v1 = i * 2;
           const v2 = i * 2 + 1;
           const v3 = (i + 1) * 2;
           const v4 = (i + 1) * 2 + 1;
-          idx.push(v1, v2, v3);
-          idx.push(v2, v4, v3);
+          if (sign === 1) {
+            idx.push(v1, v3, v2);
+            idx.push(v2, v3, v4);
+          } else {
+            idx.push(v1, v2, v3);
+            idx.push(v2, v4, v3);
+          }
         }
       }
 

@@ -1,16 +1,15 @@
 /**
  * ============================================================================
- * HIGH-PERFORMANCE AI DRIVER & COMPETITIVE RACING ENGINE (AUTODROMO NAZIONALE MONZA)
- * Formula 1 IoT Telemetry & Race Simulator
+ * HIGH-PERFORMANCE AI RACING ENGINE & RACE CRAFT CONTROLLER
+ * Autodromo Nazionale Monza — Formula 1 IoT Telemetry & Race Simulator
  * ============================================================================
- * Dynamic Features:
- *  - Aggressive slipstream drafting wake model (+22 km/h tow boost)
- *  - Active DRS deployment on Rettifilo and Serraglio straights (>355 km/h)
- *  - Multi-lane lateral overtaking maneuvers (pulls out early, no checking up)
- *  - Late-braking chicane dive-bombs into Variante del Rettifilo & Roggia
- *  - Driver personality matrix (Verstappen dive-bomber, Leclerc traction specialist,
- *    Hamilton slipstream tactician, Alonso defensive maestro, Norris apex hunter)
- *  - Clamped lateral bounds to ensure cars race wheel-to-wheel safely on track
+ * Features:
+ *  - Single-file / 2-wide racecraft discipline (Strictly prevents 3-wide or 6-wide clumping)
+ *  - Aerodynamic slipstream drafting wake model (+18 to +26 km/h tow boost)
+ *  - Straightaway overtaking duels (Rettifilo, Serraglio, and Back straight)
+ *  - Chicane apex discipline (Cars funnel cleanly into Turn 1, Roggia, and Ascari)
+ *  - Dynamic following distance regulation (Smooth speed matching without conga-line braking)
+ *  - Authentic F1 driver personality matrix (VER, LEC, HAM, NOR, ALO, GAS)
  * ============================================================================
  */
 
@@ -19,37 +18,23 @@ class AIDriverController {
     this.physics = vehiclePhysics;
     this.driver = driverConfig || {};
     this.track = track;
-
-    // Driver-specific F1 Personality Matrix
     const code = (this.driver.code || 'DRV').toUpperCase();
+
+    // Authentic Formula 1 Performance & Racecraft Matrix
     const PROFILES = {
-      VER: { aggression: 0.99, diveBombBias: 26, slipstreamBoost: 25, cornerSpeed: 1.018, laneFlex: 3.4, consistency: 0.98 },
-      LEC: { aggression: 0.97, diveBombBias: 23, slipstreamBoost: 24, cornerSpeed: 1.015, laneFlex: 3.2, consistency: 0.97 },
-      HAM: { aggression: 0.94, diveBombBias: 18, slipstreamBoost: 26, cornerSpeed: 1.010, laneFlex: 3.1, consistency: 0.99 },
-      NOR: { aggression: 0.95, diveBombBias: 21, slipstreamBoost: 23, cornerSpeed: 1.012, laneFlex: 3.2, consistency: 0.96 },
-      ALO: { aggression: 0.98, diveBombBias: 28, slipstreamBoost: 22, cornerSpeed: 1.008, laneFlex: 3.5, consistency: 0.97 },
-      GAS: { aggression: 0.92, diveBombBias: 16, slipstreamBoost: 21, cornerSpeed: 1.002, laneFlex: 2.9, consistency: 0.95 }
+      VER: { topSpeedBias: 5.0, lateBraking: 26.0, slipstream: 26.0, cornerPace: 1.018, lineBias: -0.20, name: 'Max Verstappen' },
+      LEC: { topSpeedBias: 3.0, lateBraking: 22.0, slipstream: 24.0, cornerPace: 1.016, lineBias: 0.20, name: 'Charles Leclerc' },
+      HAM: { topSpeedBias: 0.0, lateBraking: 16.0, slipstream: 22.0, cornerPace: 1.012, lineBias: -0.30, name: 'Lewis Hamilton' },
+      NOR: { topSpeedBias: -1.0, lateBraking: 18.0, slipstream: 22.0, cornerPace: 1.012, lineBias: 0.10, name: 'Lando Norris' },
+      ALO: { topSpeedBias: -3.0, lateBraking: 24.0, slipstream: 20.0, cornerPace: 1.006, lineBias: -0.10, name: 'Fernando Alonso' },
+      GAS: { topSpeedBias: -5.0, lateBraking: 14.0, slipstream: 18.0, cornerPace: 1.000, lineBias: 0.30, name: 'Pierre Gasly' }
     };
 
-    this.profile = PROFILES[code] || {
-      aggression: 0.94,
-      diveBombBias: 20,
-      slipstreamBoost: 22,
-      cornerSpeed: 1.005,
-      laneFlex: 3.0,
-      consistency: 0.96
-    };
-
-    // Driver-specific racing line bias and overtaking state
-    this.racingLineBias = (Math.random() - 0.5) * 1.6;
+    this.profile = PROFILES[code] || PROFILES.LEC;
     this.overtakeOffset = 0.0;
-    this.overtakeHoldTimer = 0.0;
+    this.overtakeTimer = 0.0;
+    this.isPassing = false;
     this.targetSpeedKmh = 350.0;
-    this.isSlipstreaming = false;
-    this.isDiveBombing = false;
-
-    // Small periodic rhythm variation for realistic lap time variance
-    this.paceRhythm = 1.0 + ((Math.random() - 0.5) * 0.015);
   }
 
   update(dt, ...otherCarsArgs) {
@@ -67,118 +52,126 @@ class AIDriverController {
       }
     });
 
-    // 1. Dynamic Multi-Car Overtaking & Slipstream Analysis
-    let slipstreamActive = false;
-    let closestAheadDist = Infinity;
-    let closestAheadCar = null;
-    let lateralAvoidance = 0;
+    // 1. Scan for the immediate car directly ahead on track
+    let aheadCar = null;
+    let minAheadDist = Infinity;
 
     otherCars.forEach(other => {
       if (!other || other === this.physics) return;
+      let d = other.trackDistance - curDist;
+      if (d < -trackLen / 2) d += trackLen;
+      if (d > trackLen / 2) d -= trackLen;
 
-      let distDelta = (other.trackDistance - curDist);
-      if (distDelta < -trackLen / 2) distDelta += trackLen;
-      if (distDelta > trackLen / 2) distDelta -= trackLen;
-
-      const latDelta = (other.lateralOffset - this.physics.lateralOffset);
-
-      // Car directly ahead
-      if (distDelta > 0 && distDelta < 48.0) {
-        if (distDelta < closestAheadDist) {
-          closestAheadDist = distDelta;
-          closestAheadCar = other;
-        }
-
-        // A. Slipstream Tow Pocket (within 42m behind, within 3.5m lateral offset)
-        if (distDelta > 4.0 && Math.abs(latDelta) < 3.2 && currentSpeedKmh > 200) {
-          slipstreamActive = true;
-
-          // B. Proactive Overtaking: Trailing car steps out into clear lane early
-          if (distDelta < 34.0 && this.overtakeHoldTimer <= 0) {
-            // Pick clear lane: if other car is on left/center, pull right (+3.0m); else pull left (-3.0m)
-            const clearSide = other.lateralOffset <= 0 ? 3.0 : -3.0;
-            this.overtakeOffset = clearSide;
-            this.overtakeHoldTimer = 3.8; // Firmly commit to pass lane for 3.8s
-          }
-        }
-
-        // C. Wheel-to-Wheel Lateral Separation (only when directly overlapping)
-        // Never slam brakes! Maintain safe side-by-side track spacing
-        if (distDelta < 5.0 && Math.abs(latDelta) < 1.6) {
-          lateralAvoidance = latDelta >= 0 ? -1.6 : 1.6;
-        }
-      } else if (distDelta < -8.0 && this.overtakeHoldTimer > 0) {
-        // Successfully completed pass and cleared the car behind
-        this.overtakeHoldTimer = 0;
-        this.overtakeOffset = 0;
+      if (d > 0 && d < minAheadDist) {
+        minAheadDist = d;
+        aheadCar = other;
       }
     });
 
-    if (this.overtakeHoldTimer > 0) {
-      this.overtakeHoldTimer -= dt;
-      if (this.overtakeHoldTimer <= 0) {
-        this.overtakeOffset *= 0.5; // Smooth return
+    // 2. Identify track zone: Overtaking is strictly focused on passing straights
+    // (Main Straight, Roggia chute, Serraglio underpass blast, and Back straight)
+    const isPassingStraight = (curDist < 880) || 
+                              (curDist >= 2100 && curDist <= 2450) || 
+                              (curDist >= 3250 && curDist <= 4150) || 
+                              (curDist >= 4600 && curDist <= 5150);
+
+    // 3. Strict 2-Wide Rule: Check if the car ahead is ALREADY engaged in a side-by-side battle!
+    // In real racing, trailing cars DO NOT go 3-wide or 6-wide; they stay tucked behind in the draft!
+    let aheadAlreadyInBattle = false;
+    if (aheadCar) {
+      otherCars.forEach(o => {
+        if (!o || o === this.physics || o === aheadCar) return;
+        let d = Math.abs(o.trackDistance - aheadCar.trackDistance);
+        if (d > trackLen / 2) d = trackLen - d;
+        if (d < 7.0 && Math.abs(o.lateralOffset - aheadCar.lateralOffset) > 1.8) {
+          aheadAlreadyInBattle = true;
+        }
+      });
+    }
+
+    // 4. Overtake Decision Engine
+    // Only attempt an overtake if: on a straight, NOT already 2-wide ahead, within drafting range, and carrying speed
+    const canOvertake = isPassingStraight && 
+                        !aheadAlreadyInBattle && 
+                        aheadCar && 
+                        minAheadDist < 26.0 && 
+                        minAheadDist > 5.0 && 
+                        currentSpeedKmh > 210;
+
+    if (canOvertake && this.overtakeTimer <= 0) {
+      // Step out into the clear lane alongside the car ahead (inside or outside line)
+      this.overtakeOffset = aheadCar.lateralOffset <= 0 ? 2.8 : -2.8;
+      this.overtakeTimer = 3.5; // Commit to pass lane for 3.5s
+      this.isPassing = true;
+    }
+
+    if (this.overtakeTimer > 0) {
+      this.overtakeTimer -= dt;
+      if (this.overtakeTimer <= 0 || !isPassingStraight) {
+        this.overtakeOffset = 0;
+        this.isPassing = false;
       }
     }
 
-    this.isSlipstreaming = slipstreamActive;
-
-    // 2. Lookahead Anticipatory Braking & Late-Braking Chicane Battles
-    // Scaled realistically so cars don't brake 400m before corners
+    // 5. Lookahead Anticipatory Braking & Late-Braking Dive-Bombs
     let lookaheadMeters = Math.max(22.0, (currentSpeedKmh / 350.0) * 115.0);
-
-    // If chasing another car into a heavy braking zone, execute aggressive late-braking dive-bomb!
-    this.isDiveBombing = false;
-    if (closestAheadCar && closestAheadDist < 35.0 && currentSpeedKmh > 230) {
-      lookaheadMeters = Math.max(18.0, lookaheadMeters - this.profile.diveBombBias);
-      this.isDiveBombing = true;
+    if (this.isPassing && currentSpeedKmh > 240) {
+      lookaheadMeters = Math.max(18.0, lookaheadMeters - this.profile.lateBraking);
     }
 
     const lookaheadDist = (curDist + lookaheadMeters) % trackLen;
-    const immediateTarget = this.calculateMonzaSpeed(curDist);
-    const lookaheadTarget = this.calculateMonzaSpeed(lookaheadDist);
+    let targetSpeed = Math.min(this.calculateMonzaSpeed(curDist), this.calculateMonzaSpeed(lookaheadDist));
+    targetSpeed *= this.profile.cornerPace;
+    targetSpeed += this.profile.topSpeedBias;
 
-    // Compute base target corner speed with driver personality factor
-    let targetSpeed = Math.min(immediateTarget, lookaheadTarget) * this.profile.cornerSpeed * this.paceRhythm;
+    // Slipstream tow boost (+18 to +26 km/h)
+    if (aheadCar && minAheadDist < 38.0 && currentSpeedKmh > 200) {
+      targetSpeed += this.profile.slipstream;
+    }
 
-    // Slipstream provides massive top-end speed burst down straights
-    if (slipstreamActive) {
-      targetSpeed += this.profile.slipstreamBoost;
+    // 6. Smooth Slipstream Queue Distance Regulation (NO Conga-Line Braking!)
+    // When following behind another car and NOT passing alongside, smoothly match speed to stay in the draft
+    if (aheadCar && minAheadDist < 16.0 && !this.isPassing) {
+      const followSpeed = aheadCar.speedKmh + (minAheadDist - 11.0) * 1.8;
+      targetSpeed = Math.min(targetSpeed, followSpeed);
     }
 
     this.targetSpeedKmh = targetSpeed;
 
-    // 3. Longitudinal Throttle & Aggressive Braking Mechanics
+    // 7. Lateral Target Tracking
+    // Natural racing line + driver personal preference line + overtake lane
+    const baseApex = this.getMonzaApexLine(curDist);
+    let targetOffset = baseApex + this.profile.lineBias + this.overtakeOffset;
+
+    // Wheel-to-wheel micro-separation (only if side by side within 5m)
+    if (aheadCar && minAheadDist < 5.0) {
+      const latDelta = aheadCar.lateralOffset - this.physics.lateralOffset;
+      if (Math.abs(latDelta) < 1.8) {
+        targetOffset += latDelta >= 0 ? -1.4 : 1.4;
+      }
+    }
+
+    const maxHalfWidth = (this.track.config.width_m / 2) - 1.2;
+    targetOffset = THREE.MathUtils.clamp(targetOffset, -maxHalfWidth, maxHalfWidth);
+
+    // 8. Longitudinal Throttle vs. Trail Braking
+    const speedDiff = targetSpeed - currentSpeedKmh;
     let throttleInput = 0;
     let brakeInput = 0;
-    const speedDiff = targetSpeed - currentSpeedKmh;
 
     if (speedDiff > 2.0) {
-      // 100% Full Throttle acceleration down straights & out of chicanes
       throttleInput = 1.0;
       brakeInput = 0.0;
     } else if (speedDiff < -8.0) {
-      // Hard Deceleration into chicanes (carbon brakes 5G threshold)
       throttleInput = 0.0;
       const decelDemand = Math.abs(speedDiff) / 22.0;
-      brakeInput = THREE.MathUtils.clamp(decelDemand * this.profile.consistency, 0.40, 1.0);
+      brakeInput = THREE.MathUtils.clamp(decelDemand, 0.40, 1.0);
     } else {
-      // Maintaining high-speed apex velocity through Curva Grande & Parabolica
-      throttleInput = 0.75;
+      throttleInput = 0.65;
       brakeInput = 0.0;
     }
 
-    // DRS Activation on Rettifilo and Serraglio straights
     const isDrs = (curDist >= 120 && curDist <= 950) || (curDist >= 4400 && curDist <= 5180);
-
-    // 4. Lateral Lane Target on Track (combines base racing line + overtaking + avoidance)
-    const baseApexLine = this.getMonzaApexLine(curDist);
-    const maxHalfWidth = (this.track.config.width_m / 2) - 1.2; // Safe tarmac bounds (approx 6.0m)
-    const targetOffset = THREE.MathUtils.clamp(
-      baseApexLine + this.racingLineBias + this.overtakeOffset + lateralAvoidance,
-      -maxHalfWidth,
-      maxHalfWidth
-    );
 
     // Feed controls directly into VehiclePhysics
     this.physics.update(dt, {
@@ -189,24 +182,24 @@ class AIDriverController {
     });
   }
 
-  // Official Monza Speed Target Map (5,793 meters)
+  // Official Monza Speed Profile (5,793 meters)
   calculateMonzaSpeed(dist) {
     const trackLen = this.track.trackLength || 5793;
     const d = ((dist % trackLen) + trackLen) % trackLen;
 
-    // 1. Rettifilo Main Straight (0 - 950m): 355 km/h blast
-    if (d < 950) return 355.0;
+    // 1. Rettifilo Main Straight (0 - 950m): 352 km/h
+    if (d < 950) return 352.0;
 
-    // 2. Turn 1 Braking Zone (950 - 1100m): 355 -> 78 km/h (late braking down to T1 apex)
+    // 2. Turn 1 Braking Zone (950 - 1100m): 352 -> 78 km/h
     if (d >= 950 && d < 1100) {
       const t = (d - 950) / 150.0;
-      return 355.0 - (t * (355.0 - 78.0));
+      return 352.0 - (t * (352.0 - 78.0));
     }
 
-    // 3. Variante del Rettifilo Chicane (1100 - 1350m): 80 - 95 km/h flick
+    // 3. Variante del Rettifilo Chicane (1100 - 1350m): 86 km/h
     if (d >= 1100 && d < 1350) return 86.0;
 
-    // 4. Curva Grande (Biassono) (1350 - 2150m): 150 -> 292 km/h high-speed sweeper
+    // 4. Curva Grande (Biassono) (1350 - 2150m): 150 -> 292 km/h sweeper
     if (d >= 1350 && d < 2150) {
       const t = (d - 1350) / 800.0;
       return 150.0 + (t * (292.0 - 150.0));
@@ -242,7 +235,7 @@ class AIDriverController {
       return 340.0 - (t * (340.0 - 220.0));
     }
 
-    // 12. Variante Ascari Chicane (4360 - 4600m): 228 km/h high-speed transition
+    // 12. Variante Ascari Chicane (4360 - 4600m): 228 km/h transition
     if (d >= 4360 && d < 4600) return 228.0;
 
     // 13. Rettifilo Rettilineo / Back Straight (4600 - 5220m): 352 km/h blast
@@ -254,7 +247,7 @@ class AIDriverController {
       return 352.0 - (t * (352.0 - 180.0));
     }
 
-    // 15. Curva Parabolica (Alboreto) (5360 - 5793m): 180 km/h apex -> 275 km/h exit onto straight
+    // 15. Curva Parabolica (Alboreto) (5360 - 5793m): 180 km/h apex -> 275 km/h exit
     const t = (d - 5360) / (5793 - 5360);
     return 180.0 + (t * (275.0 - 180.0));
   }
@@ -264,30 +257,29 @@ class AIDriverController {
     const trackLen = this.track.trackLength || 5793;
     const d = ((dist % trackLen) + trackLen) % trackLen;
 
-    // Turn 1 Chicane: entry hugs left (-3.2m), clips right apex (+3.0m), then left apex (-3.0m)
-    if (d >= 900 && d < 1050) return -3.2;
-    if (d >= 1050 && d < 1200) return 3.0;
-    if (d >= 1200 && d < 1350) return -2.8;
+    // Turn 1 Chicane: entry hugs left (-3.0m), clips right apex (+2.8m), then left apex (-2.6m)
+    if (d >= 900 && d < 1050) return -3.0;
+    if (d >= 1050 && d < 1200) return 2.8;
+    if (d >= 1200 && d < 1350) return -2.6;
 
-    // Curva Grande: hugs right apex (+2.8m)
-    if (d >= 1450 && d < 2050) return 2.6;
+    // Curva Grande: hugs right apex (+2.4m)
+    if (d >= 1450 && d < 2050) return 2.4;
 
-    // Roggia: entry right (+2.8m), clips left (-2.8m), clips right (+2.8m)
-    if (d >= 2500 && d < 2650) return -2.8;
-    if (d >= 2650 && d < 2800) return 2.8;
+    // Roggia: entry right (-2.6m), clips left (+2.6m)
+    if (d >= 2500 && d < 2650) return -2.6;
+    if (d >= 2650 && d < 2800) return 2.6;
 
-    // Lesmo 1 & 2: inside right apexes (+2.8m)
-    if (d >= 2900 && d < 3100) return 2.6;
-    if (d >= 3100 && d < 3300) return 2.6;
+    // Lesmo 1 & 2: inside right apexes (+2.4m)
+    if (d >= 2900 && d < 3300) return 2.4;
 
-    // Ascari: clips left (-2.8m), flicks right (+2.8m), exits left (-2.8m)
-    if (d >= 4250 && d < 4400) return -2.8;
-    if (d >= 4400 && d < 4550) return 2.6;
-    if (d >= 4550 && d < 4700) return -2.6;
+    // Ascari: clips left (-2.6m), flicks right (+2.4m), exits left (-2.4m)
+    if (d >= 4250 && d < 4400) return -2.6;
+    if (d >= 4400 && d < 4550) return 2.4;
+    if (d >= 4550 && d < 4700) return -2.4;
 
-    // Parabolica: hugs right inside apex (+2.8m) then drifts out to left curb on exit (-3.2m)
-    if (d >= 5300 && d < 5550) return 2.8;
-    if (d >= 5550 && d < 5793) return -3.0;
+    // Parabolica: hugs right inside apex (+2.6m) then drifts out to left curb on exit (-2.8m)
+    if (d >= 5300 && d < 5550) return 2.6;
+    if (d >= 5550 && d < 5793) return -2.8;
 
     return 0.0;
   }

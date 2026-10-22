@@ -108,10 +108,10 @@ class VehiclePhysics {
   resetToGrid(gridSlotIndex = 0) {
     const trackLen = this.track.trackLength;
     // Staggered grid slots on the Monza Rettifilo straight (12m longitudinal gap)
-    const slotDistance = 88 - (gridSlotIndex * 11);
+    const slotDistance = 140 - (gridSlotIndex * 18);
     this.trackDistance = slotDistance;
     // Pole position on left (-2.8m), P2 on right (+2.8m)
-    this.lateralOffset = (gridSlotIndex % 2 === 0) ? -2.6 : 2.6;
+    this.lateralOffset = (gridSlotIndex % 2 === 0) ? -2.4 : 2.4;
     this.lateralVelocity = 0;
 
     const u = slotDistance / trackLen;
