@@ -102,8 +102,10 @@ class F1CarModel {
     const clone = masterGltf.scene.clone(true);
     this.gltfInstance = clone;
 
-    // Center on X-axis (original model is offset by ~0.645m)
-    clone.position.set(-0.645, 0, 0);
+    // Scale to regulation F1 dimensions (1.92m width x 4.82m length)
+    clone.scale.set(1.08, 1.08, 1.08);
+    // Center on X-axis and ground contact on asphalt (-0.645 * 1.08 = -0.6966m)
+    clone.position.set(-0.6966, 0.012, 0);
 
     const mainColor = new THREE.Color(this.driver.color);
     const accentColor = new THREE.Color(this.driver.accentColor || 0x111111);

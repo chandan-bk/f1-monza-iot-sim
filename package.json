@@ -1,7 +1,7 @@
 {
-  "name": "f1-iot-telemetry-sim",
+  "name": "f1-monza-iot-sim",
   "version": "1.0.0",
-  "description": "Application of IoT in Motorsport: Real-Time Race Car Telemetry Monitoring and Performance Analysis",
+  "description": "Autodromo Nazionale Monza: Real-Time Formula 1 IoT Telemetry Monitoring & Race Simulator",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

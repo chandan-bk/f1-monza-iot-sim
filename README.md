@@ -1,151 +1,139 @@
-# Formula 1 IoT Telemetry & Racing Simulator
+# Monza Grand Prix: Formula 1 IoT Telemetry & Race Simulator
 
-> **College Engineering Capstone Project:**  
-> *"Application of IoT in Motorsport: Real-Time Race Car Telemetry Monitoring and Performance Analysis"*
-
-A fully playable, visually impressive 3D Formula-style motorsport racing game tightly integrated with a real-time IoT telemetry monitoring and race engineering analytics suite.
-
----
-
-## 🌟 Key Features
-
-1. **High-Fidelity 3D Racing Environment (Three.js WebGL)**:
-   - "Albert Grand Prix Ring" circuit with 3D curbs, tarmac runoffs, distance braking marker boards, sponsor barriers, grandstands, and a 5-light start gantry.
-   - Procedural Formula 1 single-seater cars with front/rear aerodynamic wings, animated DRS flap, halo safety structure, glowing carbon-ceramic brake rotors, and distinct team liveries (Apex Racing, Scuderia Veloce, CyberGP).
-   - Dynamic Chase Camera and Onboard T-Cam / Cockpit Camera options.
-   - Procedural Web Audio API sound synthesizer: 1.6L V6 turbo engine pitch, turbocharger whistle, rev-limiter pops, tire screech, kerb rumble, and pit radio alerts.
-
-2. **Physically Grounded Vehicle Dynamics Engine**:
-   - 1.6L V6 Turbocharged Hybrid powertrain with broad torque plateau and 8-speed seamless sequential transmission.
-   - Speed-squared aerodynamic downforce ($F_{\text{down}} = \frac{1}{2}\rho C_l A v^2$) and aerodynamic drag with DRS reduction.
-   - Deceleration exceeding **$-5.1\text{G}$** under heavy aerodynamic loading.
-   - Pacejka-derived multi-surface tire friction model (asphalt, kerb, grass).
-   - Subsystem thermodynamics: engine coolant equilibrium, brake rotor heating/cooling, and 4-wheel individual tire thermal wear degradation.
-
-3. **Professional Pitwall Telemetry Dashboard**:
-   - High-performance, non-blocking 60fps rolling Canvas charts (Speed, Dual Throttle/Brake, RPM/Gear, Thermal profile).
-   - G-G Traction Circle (Lateral vs Longitudinal G-force diagram).
-   - 2D Vector GPS Track Map with real-time car markers, sector boundaries, and incident flashers.
-   - Official timing leaderboard with sector splits (S1, S2, S3) and interval gaps.
-   - Real-time rule-based engineering diagnostic log with transparent threshold detection and actionable pitwall recommendations.
-
-4. **Dual Ingest IoT Architecture**:
-   - **Mode 1: Simulation Ingest**: High-frequency synchronous 20Hz telemetry sampling and JSON serialization.
-   - **Mode 2: Hardware IoT Mode**: Real or simulated ESP32 prototype streaming MPU6050 6-axis IMU accelerations, TCRT5000 optical lap trigger pulses, and temperature data over Wi-Fi/WebSocket.
-   - Explicit tags distinguishing `[PHYSICAL SENSOR]`, `[DERIVED METRIC]`, and `[SIMULATION ONLY]` parameters.
-
-5. **Post-Race Analytics & CSV Export**:
-   - Podium classifications, fastest lap, and sector breakdowns.
-   - Interactive dual-lap telemetry overlay comparison chart.
-   - One-click CSV export of all 20Hz samples for external analysis in Python, MATLAB, or MoTeC.
-   - LocalStorage persistence across browser refreshes.
+> **Engineering Capstone Project Presentation:**  
+> *"Application of IoT in Motorsport: Real-Time Race Car Telemetry Monitoring, Edge Diagnostics, and Engineering Analytics"*  
+> **Circuit:** Autodromo Nazionale Monza ("The Temple of Speed" — 5,793m, 11 Turns, 3 Sectors, 2 DRS Zones)  
+> **Framework:** Three.js (WebGL), Curvilinear Dynamics Engine, Node.js WebSocket Gateway, REST Ingest, 20Hz Synchronous IoT Telemetry
 
 ---
 
-## 🚀 Quick Start Guide
+## 🏎️ 1. Project Overview & Motivation
 
-### Prerequisites
-- Node.js (v18+ recommended, v24 supported)
-- Modern Web Browser (Google Chrome, Microsoft Edge, Firefox, Brave)
+Formula 1 and modern top-tier motorsport represent the pinnacle of **Internet of Things (IoT) edge telemetry and stream analytics**. During a Grand Prix weekend, a modern Formula 1 car acts as a high-speed IoT sensor network, generating over **1.1 billion telemetry data points** (~3GB per car per race) streamed across ATLAS / MoTeC pitwall telemetry systems.
 
-### 1. Launch with Node.js Server (Recommended for IoT Gateway & WebSockets)
+This project was built to deliver a comprehensive, interactive demonstration of **IoT in Motorsport** for academic capstone presentation. It pairs a high-fidelity 3D racing simulation of the iconic **Autodromo Nazionale Monza** with a real-time **20 Hz IoT Telemetry Pipeline**, featuring:
+- Autonomous 6-Car Competitive AI Racing with Curvilinear Track Stabilization (Zero off-track anomalies).
+- Multi-Car Telemetry Channel Selector (Switch real-time sensor streams across Charles Leclerc, Max Verstappen, Lewis Hamilton, Lando Norris, Fernando Alonso, and Pierre Gasly).
+- Real-Time Dual Ingest Gateway (Simulation Ingest + Physical/Simulated ESP32 Microcontroller Ingest over WebSockets/REST).
+- Live Race Engineer Diagnostics Engine (Brake fade detection, Pirelli tire thermal degradation, DRS activation verification, MGU-K energy harvesting).
+
+---
+
+## 🎓 2. Professor Presentation Guide: Existing vs. Our Modifications
+
+| Domain | Existing Real-World Motorsport IoT | Our Project Modification & Innovation |
+|---|---|---|
+| **Sensor Network Topology** | Centralized CAN-FD bus connected to McLaren Applied TAG-320 ECU; complex wired looms adding 1.5–2.5 kg weight. | **Dual-Gateway Hybrid IoT Architecture**: Modular edge telemetry nodes with synchronous 20Hz WebSocket streaming + REST fallback ingest. |
+| **Telemetry Ingest & Latency** | Proprietary microwave radio burst telemetry (ATLAS) with 200–500ms delay to garage pitwalls. | **Sub-50ms Real-Time Web Telemetry**: Bi-directional WebSockets streaming JSON telemetry frames at 20 Hz, accessible concurrently by race engineers on any browser/tablet. |
+| **Driver Assistance & Autonomy** | Driver-in-the-Loop (DiL) proprietary simulators costing millions, restricted to factory supercomputers. | **Browser-Native Curvilinear Autonomous AI**: Mathematically bounded track-spline physics with lookahead chicane braking, drafting, and overtaking—guaranteeing 100% collision-free, on-track realism. |
+| **Edge Fault Detection** | Post-lap telemetry analysis by human race engineers looking at historical telemetry charts. | **Automated Real-Time Rule Engine**: Continuous edge anomaly detection running at 20Hz, instantly generating race engineer alerts (e.g. *Brake Disc Temp > 850°C*, *Pirelli Tire Blistering Hazard*, *DRS Gap < 1.0s*). |
+| **Hardware Accessibility** | Bespoke motorsport-grade sensors ($5,000+ per wheel hub sensor). | **Accessible Microcontroller Bridge**: ESP32 C++ firmware with MPU-6050 6-DoF IMU and TCRT5000 optical timing gate, enabling physical hardware testbench verification. |
+
+---
+
+## 🌟 3. Circuit Geometry: Autodromo Nazionale Monza
+
+The simulation models the authentic 5,793-meter Monza layout:
+1. **Rettifilo Straight**: Flat-out 350+ km/h blast down the pit straight with DRS Zone 1.
+2. **Variante del Rettifilo (Turns 1 & 2)**: Violent 5.2G deceleration zone from 352 km/h down to 78 km/h. Brakes heat up to 950°C!
+3. **Curva Grande (Turn 3)**: High-speed sweeping right-hander taken at 285 km/h.
+4. **Variante della Roggia (Turns 4 & 5)**: Sharp chicane braking down to 114 km/h with high red/white kerb bounding.
+5. **Curva di Lesmo 1 & 2 (Turns 6 & 7)**: Double right-handers testing lateral tire grip ($G_y > 3.8\text{G}$).
+6. **Serraglio Straight & Historic 1955 Banking Overpass Bridge**: Speed build-up to 335 km/h passing beneath the legendary concrete banked oval bridge.
+7. **Variante Ascari (Turns 8, 9 & 10)**: Rapid left-right-left chicane taken at 225 km/h with aggressive kerb clipping.
+8. **Curva Parabolica / Curva Alboreto (Turn 11)**: Iconic long sweeping 180° turn feeding onto the main straight with DRS Zone 2.
+
+---
+
+## 📡 4. 20Hz IoT Telemetry Sensor Specification
+
+Every 50ms (20 times per second), the simulation serializes a comprehensive IoT telemetry packet:
+
+```json
+{
+  "timestamp": 1729618000050,
+  "car_id": "LEC_16",
+  "driver": "Charles Leclerc",
+  "team": "Scuderia Ferrari HP",
+  "speed_kmh": 348.6,
+  "engine_rpm": 14250,
+  "gear": 8,
+  "throttle_pct": 100.0,
+  "brake_pct": 0.0,
+  "drs_status": "OPEN",
+  "imu": {
+    "longitudinal_g": 0.42,
+    "lateral_g": -0.15,
+    "vertical_g": 1.02,
+    "yaw_rate_rads": 0.012
+  },
+  "thermals": {
+    "engine_coolant_c": 102.4,
+    "brake_rotors_c": { "fl": 412, "fr": 415, "rl": 320, "rr": 322 },
+    "tire_surface_c": { "fl": 104.2, "fr": 105.1, "rl": 108.3, "rr": 107.9 }
+  },
+  "hybrid_powertrain": {
+    "ers_soc_pct": 78.4,
+    "mgu_k_kw": -120.0,
+    "mgu_h_rpm": 98500
+  },
+  "track_position": {
+    "sector": 1,
+    "distance_m": 840.5,
+    "lap_number": 2,
+    "lap_time_s": 24.320
+  }
+}
+```
+
+---
+
+## 🚀 5. Quick Start Instructions
+
+### Option A: Local Node.js Telemetry Server (Full WebSocket + Ingest)
 ```bash
-# Navigate to the project folder
-cd f1-iot-telemetry-sim
+# 1. Clone repository
+git clone https://github.com/chandan-bk/f1-monza-iot-sim.git
+cd f1-monza-iot-sim
 
-# Install dependencies (only required once: express & ws)
+# 2. Install dependencies (express, ws)
 npm install
 
-# Start the Telemetry Server & WebSocket Gateway
+# 3. Start Telemetry Server & WebSocket Gateway
 npm start
-# or: node server.js
-```
-Now open your browser and navigate to:  
-👉 **`http://localhost:3000`**
-
-### 2. Standalone Zero-Install Launch (Pure Static Browser Mode)
-The application is designed to be completely functional even without Node.js installed:
-- Simply double-click `public/index.html` or serve with any static web server (such as Python `python -m http.server 8000` or VS Code Live Server).
-- Mode 1 Simulation Ingest and the built-in ESP32 Hardware Testbench run 100% client-side in the browser.
-
----
-
-## 🎮 Driving Controls
-
-| Key | Action |
-|---|---|
-| <kbd>W</kbd> or <kbd>↑</kbd> | **Accelerate** (Engine Throttle) |
-| <kbd>S</kbd> or <kbd>↓</kbd> | **Brake** (Hydraulic Carbon Brakes) |
-| <kbd>A</kbd> or <kbd>←</kbd> | **Steer Left** |
-| <kbd>D</kbd> or <kbd>→</kbd> | **Steer Right** |
-| <kbd>SPACE</kbd> | **Handbrake / Emergency Brake** |
-| <kbd>C</kbd> | **Toggle Camera** (Chase Cam ⟷ Cockpit Cam) |
-| <kbd>T</kbd> | **Cycle View Layout** (Split Screen ⟷ Driver View ⟷ Pitwall Dashboard) |
-| <kbd>R</kbd> | **Reset Car** to Track Centerline |
-| <kbd>M</kbd> | **Mute / Unmute** Engine Audio |
-| <kbd>ESC</kbd> | **Pause / Resume** Simulation |
-
----
-
-## 📂 Project Directory Structure
-
-```text
-f1-iot-telemetry-sim/
-├── package.json                    # Project dependencies & start scripts
-├── server.js                       # Node.js WebSocket & REST Telemetry Gateway
-├── public/                         # Web Application Root
-│   ├── index.html                  # Unified application SPA (Menu, HUD, Dashboard, Results)
-│   ├── css/
-│   │   ├── style.css               # Global theme, HUD, screens, and split layouts
-│   │   └── dashboard.css           # MoTeC / ATLAS pitwall engineering styling
-│   └── js/
-│       ├── config.js               # Physics constants, circuit splines, and alert thresholds
-│       ├── track.js                # Procedural 3D track, curbs, gantry, and brake boards
-│       ├── car-model.js            # Procedural 3D F1 car with wings, halo, glowing discs
-│       ├── physics.js              # Powertrain, 8-speed gearbox, downforce, and tire friction
-│       ├── ai-driver.js            # AI opponents with collision avoidance and speed profiles
-│       ├── audio.js                # Procedural Web Audio API sound synthesizer
-│       ├── telemetry-engine.js     # 20Hz synchronous telemetry sampling & rule engine
-│       ├── iot-bridge.js           # Mode 1 / Mode 2 IoT gateway and ESP32 testbench
-│       ├── track-map.js            # 2D Vector GPS track map with live car radar
-│       ├── dashboard-ui.js         # Real-time gauges, rolling canvas charts & diagnostics
-│       ├── post-race.js            # Lap comparison charts, CSV export & storage
-│       └── main.js                 # Game loop, countdown, cameras, and state management
-├── hardware/
-│   ├── esp32_telemetry_firmware.ino # Complete Arduino C++ sketch for ESP32 DevKit v1
-│   ├── wiring_diagram_schematic.md  # Circuit pinout, breadboard diagrams & pullups
-│   └── sample_packets.json         # Real example IoT telemetry payloads
-└── docs/
-    ├── PROJECT_REPORT.md           # Full engineering capstone project report
-    ├── PHYSICS_MODEL.md            # Formulas, mathematical derivations & aero models
-    ├── TELEMETRY_DICTIONARY.md     # Parameter definitions, units, and alert thresholds
-    ├── IOT_ARCHITECTURE.md         # End-to-end IoT pipeline and latency analysis
-    └── FACULTY_DEMO_SCRIPT.md      # Step-by-step viva presentation script for professors
+# (Server runs at http://localhost:3000)
 ```
 
----
-
-## 🔬 Telemetry Parameter Summary
-
-| Parameter | Unit | Ingest Category | Description |
-|---|---|---|---|
-| `speed_kmh` | $\text{km/h}$ | Derived / Sim | Forward velocity ($0 - 360 \text{ km/h}$) |
-| `engine_rpm` | $\text{RPM}$ | Simulated | 1.6L V6 Turbo speed ($4,000 - 15,200 \text{ RPM}$) |
-| `gear` | $1 - 8$ | Simulated | Sequential gearbox selection |
-| `throttle_pct` | $\%$ | Sensor / Sim | Driver accelerator pedal displacement |
-| `brake_pct` | $\%$ | Sensor / Sim | Hydraulic brake line pressure |
-| `longitudinal_g`| $\text{G}$ | **Physical (MPU6050)** | Acceleration / Braking force (up to $-5.1\text{G}$) |
-| `lateral_g` | $\text{G}$ | **Physical (MPU6050)** | Cornering centripetal force (up to $\pm 4.2\text{G}$) |
-| `engine_temp_c`| $^\circ\text{C}$ | Simulated | ICE Coolant fluid temperature (Warning $>106^\circ\text{C}$) |
-| `tires.xx_temp`| $^\circ\text{C}$ | Simulated | 4-Wheel individual tire temperatures |
-| `brakes.xx_temp`| $^\circ\text{C}$ | Simulated | Carbon rotor temperatures (Glows at $>450^\circ\text{C}$) |
-| `ir_trigger` | Bool | **Physical (TCRT5000)**| Optical finish line beam detection |
+### Option B: Zero-Install Static Browser Mode
+The simulation can be launched without installing any dependencies:
+- Simply open `index.html` or `public/index.html` in Google Chrome, Edge, Firefox, or Brave.
+- Also live on GitHub Pages!
 
 ---
 
-## 🛠️ Troubleshooting & FAQ
+## 🎮 6. Interactive Controls & Hotkeys
 
-- **No sound?**: Browsers require a user click or keypress before playing audio. Press any key (<kbd>W</kbd>, <kbd>A</kbd>, <kbd>S</kbd>, <kbd>D</kbd>) to initialize the Web Audio engine.
-- **Port 3000 already in use?**: Launch with a different port using environment variables:  
-  `PORT=8080 npm start`
-- **Testing ESP32 Hardware Mode without physical ESP32 board?**: Click the **"Switch Ingest Mode"** button in the top navigation bar. The built-in hardware testbench will immediately simulate an active ESP32 streaming MPU6050 accelerometer noise and optical lap triggers!
+| Key | Function | Presentation Value |
+|---|---|---|
+| **`P`** | **Toggle Autonomous AI Race** | Lets professor watch hands-free multi-car AI racing while you present telemetry charts. |
+| **`1` – `6`** | **Switch Monitored Car Channel** | Switch live IoT telemetry between Leclerc (1), Verstappen (2), Hamilton (3), Norris (4), Alonso (5), Gasly (6). |
+| **`C`** | **Cycle Camera View** | Cockpit Driver POV (behind Halo) ⟷ Dynamic Chase Cam ⟷ Trackside TV Camera Towers. |
+| **`T`** | **Cycle View Layout** | Split Screen (3D + Pitwall) ⟷ Driver Focused ⟷ Pitwall Dashboard. |
+| **`W / A / S / D`** | **Manual Driving** | Take over manual control anytime to demonstrate driver-induced sensor variations. |
+| **`M`** | **Mute / Unmute Audio** | Procedural Web Audio V6 Turbo engine synthesizer with kerb rumble and turbo spool. |
+| **`CSV Button`** | **Export Telemetry** | Export all 20Hz samples into CSV for external analysis in Python, MATLAB, or Excel. |
+
+---
+
+## 🛠️ 7. Hardware Mode (ESP32 Microcontroller)
+
+The project includes an Arduino C++ firmware sketch in [`hardware/esp32_telemetry_firmware.ino`](hardware/esp32_telemetry_firmware.ino):
+1. **ESP32 DevKit v1** reads MPU-6050 accelerometer & gyroscope over I2C at 20Hz.
+2. **TCRT5000 IR Sensor** detects track optical finish line gates.
+3. Transmits JSON packets over Wi-Fi directly to the Node.js server via `POST /api/telemetry/ingest` or WebSocket.
+4. If no physical hardware is plugged in, the **"Switch Ingest Mode"** button activates an onboard hardware simulator generating realistic sensor noise!
+
+---
+
+## ⚖️ 8. License
+Academic Capstone Project & Open Source under the MIT License.

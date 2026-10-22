@@ -30,7 +30,7 @@ class CircuitTrack {
     this.curve = null;
     this.trackMesh = null;
     this.trackLength = 0;
-    this.sampleCount = 700;
+    this.sampleCount = 1200;
     this.samples = [];
 
     this.startGantryLights = [];
@@ -147,7 +147,7 @@ class CircuitTrack {
   // 2. High-Realism Asphalt Track Surface
   buildTrack() {
     const width = this.config.width_m;
-    const segments = 550;
+    const segments = 1100;
     const geometry = new THREE.BufferGeometry();
     const positions = [];
     const normals = [];
@@ -170,8 +170,8 @@ class CircuitTrack {
       normals.push(0, 1, 0);
       normals.push(0, 1, 0);
 
-      uvs.push(0, u * 80);
-      uvs.push(1, u * 80);
+      uvs.push(0, u * 160);
+      uvs.push(1, u * 160);
 
       if (i < segments) {
         const v1 = i * 2;
@@ -356,10 +356,13 @@ class CircuitTrack {
   // 5. Authentic Sawtooth Red-and-White Kerbs (Images 2 & 3)
   buildSawtoothKerbs() {
     const kerbZones = [
-      { start: 0.08, end: 0.16, side: 'both' },  // Turn 1 & 2 Chicane
-      { start: 0.22, end: 0.35, side: 'both' },  // High speed Esses
-      { start: 0.68, end: 0.78, side: 'both' },  // Turn 5 Hairpin
-      { start: 0.88, end: 0.96, side: 'both' }   // Turn 6 & 7 Final Chicane
+      { start: 0.17, end: 0.23, side: 'both' },  // Variante del Rettifilo Chicane (T1-T2)
+      { start: 0.30, end: 0.36, side: 'right' }, // Curva Grande Exit
+      { start: 0.43, end: 0.49, side: 'both' },  // Variante della Roggia (T4-T5)
+      { start: 0.50, end: 0.54, side: 'right' }, // Curva di Lesmo 1
+      { start: 0.55, end: 0.59, side: 'both' },  // Curva di Lesmo 2
+      { start: 0.72, end: 0.80, side: 'both' },  // Variante Ascari Chicane (T8-T9-T10)
+      { start: 0.90, end: 0.99, side: 'both' }   // Curva Parabolica (Alboreto)
     ];
 
     // Procedural sawtooth texture (Image 3)
@@ -944,8 +947,65 @@ class CircuitTrack {
 
   // 11. Overhead Sponsor Gantry Bridges (Matching Image 1 & 2)
   buildOverheadBridges() {
-    this.createGantryBridge(0.12, "VAMMAV", "#0288d1", "#ffffff");
-    this.createGantryBridge(0.65, "PIRELLI", "#e10600", "#ffd600");
+    this.createGantryBridge(0.02, "AUTODROMO NAZIONALE MONZA", "#e10600", "#ffffff");
+    this.createGantryBridge(0.28, "PIRELLI", "#e10600", "#ffd600");
+    this.createGantryBridge(0.48, "BREMBO", "#e10600", "#ffffff");
+    this.createHistoricMonzaOvalBankingBridge(0.62); // Historic Curva Sud Banking Overpass
+    this.createGantryBridge(0.85, "ROLEX", "#006039", "#ffd600");
+  }
+
+  // Historic 1955 Monza Concrete High-Speed Banking Bridge spanning Serraglio
+  createHistoricMonzaOvalBankingBridge(u) {
+    const pt = this.curve.getPointAt(u);
+    const tangent = this.curve.getTangentAt(u);
+    const up = new THREE.Vector3(0, 1, 0);
+    const normal = new THREE.Vector3().crossVectors(tangent, up).normalize();
+
+    const bridgeGroup = new THREE.Group();
+    const spanWidth = this.config.width_m + 32.0;
+
+    // Massive Concrete Piers
+    const pierGeo = new THREE.BoxGeometry(4.5, 14.0, 5.5);
+    const concreteMat = new THREE.MeshStandardMaterial({
+      color: 0x8a929a,
+      roughness: 0.85,
+      metalness: 0.15
+    });
+
+    [-spanWidth / 2 + 1, spanWidth / 2 - 1].forEach(x => {
+      const p = new THREE.Mesh(pierGeo, concreteMat);
+      p.position.set(x, 7.0, 0);
+      p.castShadow = true;
+      bridgeGroup.add(p);
+    });
+
+    // High-banked curved oval roadway spanning overhead
+    const deckGeo = new THREE.BoxGeometry(spanWidth + 8.0, 3.2, 18.0);
+    const deckMat = new THREE.MeshStandardMaterial({
+      color: 0x5a636c,
+      roughness: 0.78,
+      metalness: 0.20
+    });
+    const deck = new THREE.Mesh(deckGeo, deckMat);
+    deck.position.set(0, 12.5, 0);
+    deck.rotation.z = 0.28; // Banked 16 degrees like the real Monza oval!
+    deck.castShadow = true;
+    bridgeGroup.add(deck);
+
+    // Weathered guardrails on the banking
+    const railGeo = new THREE.BoxGeometry(spanWidth + 8.0, 1.4, 0.5);
+    const railMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.6 });
+    [-8.5, 8.5].forEach(z => {
+      const rail = new THREE.Mesh(railGeo, railMat);
+      rail.position.set(0, 14.5, z);
+      rail.rotation.z = 0.28;
+      bridgeGroup.add(rail);
+    });
+
+    bridgeGroup.position.copy(pt);
+    const angle = Math.atan2(tangent.x, tangent.z);
+    bridgeGroup.rotation.y = angle;
+    this.scene.add(bridgeGroup);
   }
 
   createGantryBridge(u, text, bgColor, textColor) {
