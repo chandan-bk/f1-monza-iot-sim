@@ -681,17 +681,16 @@ class CircuitTrack {
 
   // 8. Steel FIA Catch Fencing with Wire Mesh
   buildFIAFencing() {
-    const fenceOffset = (this.config.width_m / 2) + 9.3;
-    const postCount = 120;
-    const postGeo = new THREE.CylinderGeometry(0.05, 0.05, 3.2, 8);
-    const postMat = new THREE.MeshStandardMaterial({ color: 0x1f242d, metalness: 0.9, roughness: 0.2 });
+    const fenceOffset = (this.config.width_m / 2) + 11.5; // Well outside track and barriers
+    const fenceHeight = 2.8;
+    const segments = 450;
 
     const meshCanvas = document.createElement('canvas');
     meshCanvas.width = 64;
     meshCanvas.height = 64;
     const mCtx = meshCanvas.getContext('2d');
     mCtx.clearRect(0, 0, 64, 64);
-    mCtx.strokeStyle = 'rgba(210, 220, 235, 0.50)';
+    mCtx.strokeStyle = 'rgba(210, 220, 235, 0.40)';
     mCtx.lineWidth = 1.5;
     mCtx.beginPath();
     mCtx.moveTo(0, 0); mCtx.lineTo(64, 64);
@@ -701,7 +700,7 @@ class CircuitTrack {
     const meshTex = new THREE.CanvasTexture(meshCanvas);
     meshTex.wrapS = THREE.RepeatWrapping;
     meshTex.wrapT = THREE.RepeatWrapping;
-    meshTex.repeat.set(30, 4);
+    meshTex.repeat.set(160, 4);
 
     const fenceMat = new THREE.MeshStandardMaterial({
       map: meshTex,
@@ -711,34 +710,46 @@ class CircuitTrack {
     });
 
     [-1, 1].forEach(sign => {
-      for (let i = 0; i < postCount; i++) {
-        const u = i / postCount;
+      const geo = new THREE.BufferGeometry();
+      const pos = [];
+      const norm = [];
+      const uvs = [];
+      const idx = [];
+
+      for (let i = 0; i <= segments; i++) {
+        const u = i / segments;
         const pt = this.curve.getPointAt(u);
         const tangent = this.curve.getTangentAt(u);
         const up = new THREE.Vector3(0, 1, 0);
         const normal = new THREE.Vector3().crossVectors(tangent, up).normalize();
 
-        const postPos = pt.clone().add(normal.clone().multiplyScalar(sign * fenceOffset));
-        const post = new THREE.Mesh(postGeo, postMat);
-        post.position.set(postPos.x, postPos.y + 2.75, postPos.z);
-        post.castShadow = true;
-        this.scene.add(post);
+        const pBase = pt.clone().add(normal.clone().multiplyScalar(sign * fenceOffset));
+        pos.push(pBase.x, pBase.y + 0.8, pBase.z);
+        pos.push(pBase.x, pBase.y + 0.8 + fenceHeight, pBase.z);
 
-        const nextU = ((i + 1) / postCount) % 1.0;
-        const nextPt = this.curve.getPointAt(nextU);
-        const nextTan = this.curve.getTangentAt(nextU);
-        const nextNorm = new THREE.Vector3().crossVectors(nextTan, up).normalize();
-        const nextPostPos = nextPt.clone().add(nextNorm.clone().multiplyScalar(sign * fenceOffset));
+        norm.push(normal.x * sign, 0, normal.z * sign);
+        norm.push(normal.x * sign, 0, normal.z * sign);
 
-        const dist = postPos.distanceTo(nextPostPos);
-        const panelGeo = new THREE.PlaneGeometry(dist, 2.8);
-        const panel = new THREE.Mesh(panelGeo, fenceMat);
+        uvs.push(u * 160, 0);
+        uvs.push(u * 160, 1);
 
-        const mid = postPos.clone().add(nextPostPos).multiplyScalar(0.5);
-        panel.position.set(mid.x, mid.y + 2.6, mid.z);
-        panel.rotation.y = Math.atan2(nextPostPos.x - postPos.x, nextPostPos.z - postPos.z);
-        this.scene.add(panel);
+        if (i < segments) {
+          const v1 = i * 2;
+          const v2 = i * 2 + 1;
+          const v3 = (i + 1) * 2;
+          const v4 = (i + 1) * 2 + 1;
+          idx.push(v1, v2, v3);
+          idx.push(v2, v4, v3);
+        }
       }
+
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setAttribute('normal', new THREE.Float32BufferAttribute(norm, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geo.setIndex(idx);
+
+      const fenceMesh = new THREE.Mesh(geo, fenceMat);
+      this.scene.add(fenceMesh);
     });
   }
 
@@ -860,12 +871,10 @@ class CircuitTrack {
   // 10. Dense Natural Perimeter Forest (Lush Trees Lining the Circuit, Images 2 & 3)
   buildDensePerimeterForest() {
     const forestGroup = new THREE.Group();
+    const halfWidth = this.config.width_m / 2;
 
-    // High quality 3D Deciduous Tree Generator
     const createNaturalTree = (x, y, z, scale = 1.0) => {
       const tree = new THREE.Group();
-
-      // Wood trunk
       const trunkGeo = new THREE.CylinderGeometry(0.35 * scale, 0.55 * scale, 7.5 * scale, 8);
       const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.95 });
       const trunk = new THREE.Mesh(trunkGeo, trunkMat);
@@ -873,7 +882,6 @@ class CircuitTrack {
       trunk.castShadow = true;
       tree.add(trunk);
 
-      // Multi-tier lush foliage canopy (natural organic greens)
       const foliageColors = [0x1e3f22, 0x274e2d, 0x1a381e, 0x2f5a34];
       const foliageMat = new THREE.MeshStandardMaterial({
         color: foliageColors[Math.floor(Math.random() * foliageColors.length)],
@@ -881,7 +889,6 @@ class CircuitTrack {
         flatShading: true
       });
 
-      // 3 overlapping spherical canopy clusters
       const canopy1 = new THREE.Mesh(new THREE.DodecahedronGeometry(3.6 * scale, 1), foliageMat);
       canopy1.position.set(0, 7.2 * scale, 0);
       canopy1.castShadow = true;
@@ -891,16 +898,21 @@ class CircuitTrack {
       canopy2.position.set(0.8 * scale, 9.4 * scale, 0.4 * scale);
       tree.add(canopy2);
 
-      const canopy3 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.4 * scale, 1), foliageMat);
-      canopy3.position.set(-0.6 * scale, 8.8 * scale, -0.6 * scale);
-      tree.add(canopy3);
-
       tree.position.set(x, y, z);
       return tree;
     };
 
-    // Plant 320+ trees lining both sides of the circuit perimeter behind the catch fences
-    const treeSpacing = 28;
+    const isPositionSafeFromTrack = (pos) => {
+      // Must be at least halfWidth + 16 meters from EVERY track point
+      for (let s = 0; s < this.samples.length; s += 4) {
+        if (pos.distanceTo(this.samples[s].point) < (halfWidth + 16.0)) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    const treeSpacing = 32;
     for (let dist = 60; dist < this.trackLength; dist += treeSpacing) {
       const u = dist / this.trackLength;
       const pt = this.curve.getPointAt(u);
@@ -908,35 +920,26 @@ class CircuitTrack {
       const up = new THREE.Vector3(0, 1, 0);
       const normal = new THREE.Vector3().crossVectors(tangent, up).normalize();
 
-      // Both left and right outer tree lines
       [-1, 1].forEach(side => {
-        const offset = (this.config.width_m / 2) + 18.0 + (Math.random() * 20.0);
+        const offset = halfWidth + 20.0 + (Math.random() * 22.0);
         const treePos = pt.clone().add(normal.clone().multiplyScalar(side * offset));
 
-        // Exclude trees around pit straight architecture (grandstand and garages)
-        if (treePos.z >= -390 && treePos.z <= -110 && Math.abs(treePos.x) <= 60) {
-          return;
+        // Exclude trees around pit straight architecture
+        if (treePos.z >= -410 && treePos.z <= -90 && Math.abs(treePos.x) <= 70) return;
+
+        if (isPositionSafeFromTrack(treePos)) {
+          const treeScale = 0.85 + Math.random() * 0.50;
+          forestGroup.add(createNaturalTree(treePos.x, treePos.y, treePos.z, treeScale));
         }
 
-        // Verify minimum clearance from all parts of the circuit road
-        let tooClose = false;
-        for (let s = 0; s < this.samples.length; s += 8) {
-          if (treePos.distanceTo(this.samples[s].point) < (this.config.width_m / 2 + 15.0)) {
-            tooClose = true;
-            break;
-          }
-        }
-        if (tooClose) return;
-
-        const treeScale = 0.85 + Math.random() * 0.55; // Varied natural tree heights
-        forestGroup.add(createNaturalTree(treePos.x, treePos.y, treePos.z, treeScale));
-
-        // Background forest depth
-        if (Math.random() > 0.45) {
-          const depthOffset = offset + 15.0 + Math.random() * 18.0;
-          const bgTreePos = pt.clone().add(normal.clone().multiplyScalar(side * depthOffset));
-          if (!(bgTreePos.z >= -390 && bgTreePos.z <= -110 && Math.abs(bgTreePos.x) <= 65)) {
-            forestGroup.add(createNaturalTree(bgTreePos.x, bgTreePos.y, bgTreePos.z, treeScale * 1.15));
+        // Background forest line
+        if (Math.random() > 0.4) {
+          const bgOffset = offset + 20.0 + Math.random() * 25.0;
+          const bgTreePos = pt.clone().add(normal.clone().multiplyScalar(side * bgOffset));
+          if (!(bgTreePos.z >= -410 && bgTreePos.z <= -90 && Math.abs(bgTreePos.x) <= 75)) {
+            if (isPositionSafeFromTrack(bgTreePos)) {
+              forestGroup.add(createNaturalTree(bgTreePos.x, bgTreePos.y, bgTreePos.z, 1.25));
+            }
           }
         }
       });
@@ -958,53 +961,31 @@ class CircuitTrack {
   createHistoricMonzaOvalBankingBridge(u) {
     const pt = this.curve.getPointAt(u);
     const tangent = this.curve.getTangentAt(u);
-    const up = new THREE.Vector3(0, 1, 0);
-    const normal = new THREE.Vector3().crossVectors(tangent, up).normalize();
-
     const bridgeGroup = new THREE.Group();
-    const spanWidth = this.config.width_m + 32.0;
+    const spanWidth = this.config.width_m + 68.0;
 
-    // Massive Concrete Piers
-    const pierGeo = new THREE.BoxGeometry(4.5, 14.0, 5.5);
-    const concreteMat = new THREE.MeshStandardMaterial({
-      color: 0x8a929a,
-      roughness: 0.85,
-      metalness: 0.15
-    });
+    // Massive Concrete Piers safely pushed 40m into the forest
+    const pierGeo = new THREE.BoxGeometry(4.5, 18.0, 5.5);
+    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x8a929a, roughness: 0.85, metalness: 0.15 });
 
-    [-spanWidth / 2 + 1, spanWidth / 2 - 1].forEach(x => {
+    [-spanWidth / 2, spanWidth / 2].forEach(x => {
       const p = new THREE.Mesh(pierGeo, concreteMat);
-      p.position.set(x, 7.0, 0);
+      p.position.set(x, 9.0, 0);
       p.castShadow = true;
       bridgeGroup.add(p);
     });
 
-    // High-banked curved oval roadway spanning overhead
+    // High-banked curved oval roadway spanning high overhead (14m clearance)
     const deckGeo = new THREE.BoxGeometry(spanWidth + 8.0, 3.2, 18.0);
-    const deckMat = new THREE.MeshStandardMaterial({
-      color: 0x5a636c,
-      roughness: 0.78,
-      metalness: 0.20
-    });
+    const deckMat = new THREE.MeshStandardMaterial({ color: 0x5a636c, roughness: 0.78, metalness: 0.20 });
     const deck = new THREE.Mesh(deckGeo, deckMat);
-    deck.position.set(0, 12.5, 0);
-    deck.rotation.z = 0.28; // Banked 16 degrees like the real Monza oval!
+    deck.position.set(0, 15.5, 0);
+    deck.rotation.z = 0.28;
     deck.castShadow = true;
     bridgeGroup.add(deck);
 
-    // Weathered guardrails on the banking
-    const railGeo = new THREE.BoxGeometry(spanWidth + 8.0, 1.4, 0.5);
-    const railMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.6 });
-    [-8.5, 8.5].forEach(z => {
-      const rail = new THREE.Mesh(railGeo, railMat);
-      rail.position.set(0, 14.5, z);
-      rail.rotation.z = 0.28;
-      bridgeGroup.add(rail);
-    });
-
     bridgeGroup.position.copy(pt);
-    const angle = Math.atan2(tangent.x, tangent.z);
-    bridgeGroup.rotation.y = angle;
+    bridgeGroup.rotation.y = Math.atan2(tangent.x, tangent.z);
     this.scene.add(bridgeGroup);
   }
 
@@ -1096,42 +1077,45 @@ class CircuitTrack {
   buildPitLaneAndGantry() {
     const pt = this.curve.getPointAt(0.018);
     const tangent = this.curve.getTangentAt(0.018);
+    const up = new THREE.Vector3(0, 1, 0);
+    const normal = new THREE.Vector3().crossVectors(tangent, up).normalize();
 
     const gantryGroup = new THREE.Group();
+    const gantryClearance = (this.config.width_m / 2) + 9.5; // Well outside tarmac (16.75m from center)
 
-    const pillarGeo = new THREE.CylinderGeometry(0.38, 0.38, 9.0, 12);
+    const pillarGeo = new THREE.CylinderGeometry(0.38, 0.38, 10.0, 12);
     const pillarMat = new THREE.MeshStandardMaterial({ color: 0x22262e, metalness: 0.85, roughness: 0.3 });
 
-    // Position pillars safely outside the track boundaries
+    // Left and right pillars safely outside the circuit boundaries
     const leftPillar = new THREE.Mesh(pillarGeo, pillarMat);
-    leftPillar.position.set(-this.config.width_m / 2 - 3.8, 4.5, 0);
+    leftPillar.position.set(-gantryClearance, 5.0, 0);
     leftPillar.castShadow = true;
     gantryGroup.add(leftPillar);
 
     const rightPillar = new THREE.Mesh(pillarGeo, pillarMat);
-    rightPillar.position.set(this.config.width_m / 2 + 5.5, 4.5, 0);
+    rightPillar.position.set(gantryClearance, 5.0, 0);
     rightPillar.castShadow = true;
     gantryGroup.add(rightPillar);
 
-    const beamGeo = new THREE.BoxGeometry(this.config.width_m + 10.5, 1.2, 1.6);
+    const beamGeo = new THREE.BoxGeometry(gantryClearance * 2 + 1.2, 1.4, 1.8);
     const beamMat = new THREE.MeshStandardMaterial({ color: 0x1f242d, metalness: 0.7, roughness: 0.4 });
     const beam = new THREE.Mesh(beamGeo, beamMat);
-    beam.position.set(0.85, 8.2, 0);
+    beam.position.set(0, 9.6, 0);
     gantryGroup.add(beam);
 
     this.startGantryLights = [];
     for (let l = 0; l < 5; l++) {
-      const lightGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.2, 16);
+      const lightGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.2, 16);
       lightGeo.rotateX(Math.PI / 2);
       const lightMat = new THREE.MeshBasicMaterial({ color: 0x220000 });
       const lightMesh = new THREE.Mesh(lightGeo, lightMat);
-      lightMesh.position.set(-2.4 + (l * 1.2), 8.2, -0.85);
+      lightMesh.position.set(-2.8 + (l * 1.4), 9.6, -0.95);
       gantryGroup.add(lightMesh);
       this.startGantryLights.push(lightMat);
     }
 
-    gantryGroup.rotation.y = Math.atan2(tangent.x, tangent.z);
     gantryGroup.position.set(pt.x, pt.y, pt.z);
+    gantryGroup.rotation.y = Math.atan2(tangent.x, tangent.z);
     this.scene.add(gantryGroup);
   }
 
@@ -1147,7 +1131,7 @@ class CircuitTrack {
       const up = new THREE.Vector3(0, 1, 0);
       const normal = new THREE.Vector3().crossVectors(tangent, up).normalize();
 
-      const boardPos = pt.clone().add(normal.clone().multiplyScalar(-this.config.width_m / 2 - 2.8));
+      const boardPos = pt.clone().add(normal.clone().multiplyScalar(-this.config.width_m / 2 - 4.5));
 
       const canvas = document.createElement('canvas');
       canvas.width = 128;
