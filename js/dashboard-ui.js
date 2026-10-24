@@ -124,13 +124,8 @@ class DashboardUI {
     }
 
     if (elMode) {
-      if (this.bridge.mode === 'HARDWARE_ESP32') {
-        elMode.textContent = "● IoT HARDWARE (ESP32)";
-        elMode.className = "mode-pill mode-hardware";
-      } else {
-        elMode.textContent = "● SIMULATION INGEST";
-        elMode.className = "mode-pill mode-sim";
-      }
+      elMode.textContent = "● 20Hz TELEMETRY STREAM";
+      elMode.className = "mode-pill mode-sim";
     }
 
     if (elPacketRate) elPacketRate.textContent = `${this.bridge.currentHz || 20} Hz`;

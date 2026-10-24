@@ -14,7 +14,7 @@ Formula 1 and modern top-tier motorsport represent the pinnacle of **Internet of
 This project was built to deliver a comprehensive, interactive demonstration of **IoT in Motorsport** for academic capstone presentation. It pairs a high-fidelity 3D racing simulation of the iconic **Autodromo Nazionale Monza** with a real-time **20 Hz IoT Telemetry Pipeline**, featuring:
 - Autonomous 6-Car Competitive AI Racing with Curvilinear Track Stabilization (Zero off-track anomalies).
 - Multi-Car Telemetry Channel Selector (Switch real-time sensor streams across Charles Leclerc, Max Verstappen, Lewis Hamilton, Lando Norris, Fernando Alonso, and Pierre Gasly).
-- Real-Time Dual Ingest Gateway (Simulation Ingest + Physical/Simulated ESP32 Microcontroller Ingest over WebSockets/REST).
+- Real-Time Telemetry Pipeline (20Hz Synchronous Streaming over WebSockets & REST Gateway).
 - Live Race Engineer Diagnostics Engine (Brake fade detection, Pirelli tire thermal degradation, DRS activation verification, MGU-K energy harvesting).
 
 ---
@@ -27,7 +27,7 @@ This project was built to deliver a comprehensive, interactive demonstration of 
 | **Telemetry Ingest & Latency** | Proprietary microwave radio burst telemetry (ATLAS) with 200–500ms delay to garage pitwalls. | **Sub-50ms Real-Time Web Telemetry**: Bi-directional WebSockets streaming JSON telemetry frames at 20 Hz, accessible concurrently by race engineers on any browser/tablet. |
 | **Driver Assistance & Autonomy** | Driver-in-the-Loop (DiL) proprietary simulators costing millions, restricted to factory supercomputers. | **Browser-Native Curvilinear Autonomous AI**: Mathematically bounded track-spline physics with lookahead chicane braking, drafting, and overtaking—guaranteeing 100% collision-free, on-track realism. |
 | **Edge Fault Detection** | Post-lap telemetry analysis by human race engineers looking at historical telemetry charts. | **Automated Real-Time Rule Engine**: Continuous edge anomaly detection running at 20Hz, instantly generating race engineer alerts (e.g. *Brake Disc Temp > 850°C*, *Pirelli Tire Blistering Hazard*, *DRS Gap < 1.0s*). |
-| **Hardware Accessibility** | Bespoke motorsport-grade sensors ($5,000+ per wheel hub sensor). | **Accessible Microcontroller Bridge**: ESP32 C++ firmware with MPU-6050 6-DoF IMU and TCRT5000 optical timing gate, enabling physical hardware testbench verification. |
+| **Telemetry Accessibility** | Multi-million dollar proprietary setups (McLaren ATLAS, MoTeC). | **Browser-Native IoT Simulation**: Open web-standard WebSocket and REST pipeline streaming real physics telemetry at 20Hz without proprietary hardware. |
 
 ---
 
@@ -125,15 +125,5 @@ The simulation can be launched without installing any dependencies:
 
 ---
 
-## 🛠️ 7. Hardware Mode (ESP32 Microcontroller)
-
-The project includes an Arduino C++ firmware sketch in [`hardware/esp32_telemetry_firmware.ino`](hardware/esp32_telemetry_firmware.ino):
-1. **ESP32 DevKit v1** reads MPU-6050 accelerometer & gyroscope over I2C at 20Hz.
-2. **TCRT5000 IR Sensor** detects track optical finish line gates.
-3. Transmits JSON packets over Wi-Fi directly to the Node.js server via `POST /api/telemetry/ingest` or WebSocket.
-4. If no physical hardware is plugged in, the **"Switch Ingest Mode"** button activates an onboard hardware simulator generating realistic sensor noise!
-
----
-
-## ⚖️ 8. License
+## ⚖️ 7. License
 Academic Capstone Project & Open Source under the MIT License.

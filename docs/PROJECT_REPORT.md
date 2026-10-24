@@ -6,7 +6,7 @@
 
 ## Abstract
 
-In modern professional motorsport, vehicle competitiveness is dictated by the velocity and precision with which engineering teams can capture, transmit, and interpret data from the race car. This project presents the design, implementation, and evaluation of a comprehensive motorsport Internet of Things (IoT) platform integrated with a real-time 3D Formula racing simulator. The system features a high-fidelity vehicle dynamics model (incorporating 1.6L turbocharged hybrid powertrain torque curves, Pacejka-derived tire friction, speed-squared aerodynamic downforce, and thermodynamic dissipation for brakes and engine coolant), a 20Hz synchronous telemetry sampling and JSON serialization engine, a bidirectional WebSocket and REST edge gateway, and an interactive browser-based pitwall engineering dashboard. Additionally, an embedded hardware telematics node based on the ESP32 microcontroller with an MPU6050 6-axis inertial measurement unit (IMU) and TCRT5000 optical gate sensor was architected and interfaced to demonstrate physical-to-virtual telemetry ingestion. Experimental trials confirm sub-15ms wireless delivery latency, automated rule-based fault detection, and seamless post-race CSV export capabilities.
+In modern professional motorsport, vehicle competitiveness is dictated by the velocity and precision with which engineering teams can capture, transmit, and interpret data from the race car. This project presents the design, implementation, and evaluation of a comprehensive motorsport Internet of Things (IoT) platform integrated with a real-time 3D Formula racing simulator. The system features a high-fidelity vehicle dynamics model (incorporating 1.6L turbocharged hybrid powertrain torque curves, Pacejka-derived tire friction, speed-squared aerodynamic downforce, and thermodynamic dissipation for brakes and engine coolant), a 20Hz synchronous telemetry sampling and JSON serialization engine, a bidirectional WebSocket and REST edge gateway, and an interactive browser-based pitwall engineering dashboard. Experimental trials confirm sub-15ms wireless delivery latency, automated rule-based fault detection, and seamless post-race CSV export capabilities.
 
 ---
 
@@ -28,19 +28,19 @@ The platform is organized into four interconnected functional layers:
 
 ```mermaid
 graph TD
-    A["Layer 1: Cyber-Physical Edge Layer<br/>(Virtual Vehicle Physics & ESP32 Embedded Microcontroller)"] -->|20Hz Telemetry Stream| B["Layer 2: Wireless Transport Network<br/>(Wi-Fi 802.11 b/g/n, TCP/IP, WebSockets)"]
+    A["Layer 1: Virtual Sensor Edge Layer<br/>(Analytical Vehicle Dynamics Core)"] -->|20Hz Telemetry Stream| B["Layer 2: Wireless Transport Network<br/>(Wi-Fi 802.11 b/g/n, TCP/IP, WebSockets)"]
     B --> C["Layer 3: Telemetry Ingest Gateway<br/>(Node.js / Express Server & Ingest Pipeline)"]
     C --> D["Layer 4: Pitwall Engineering Analytics<br/>(60fps Canvas Charts, 2D GPS Radar, Diagnostic Rule Engine)"]
 ```
 
-### 2.1 The Edge Telematics Layer
-Data is acquired either from the high-fidelity virtual simulation core (Mode 1) or from the physical ESP32 prototype (Mode 2):
+### 2.1 The Virtual Sensor Edge Layer
+Data is generated in real time by the analytical vehicle dynamics physics engine:
 - **Kinematic Core**: Solves forward velocity, lateral centripetal acceleration, yaw rate, wheel slip ratio, and aerodynamic downforce at 60 Hz.
-- **Physical ESP32 Node**: Measures 3-axis linear acceleration ($a_x, a_y, a_z$) and angular velocity ($g_z$) via the MPU6050 over high-speed I2C (400 kHz), with optical lap timing triggered by a TCRT5000 infrared sensor attached to a hardware interrupt line on GPIO4.
+- **Telemetry Sampling Engine**: Synchronously samples 30+ virtual sensor channels every 50ms (20 Hz), serializing parameters into standardized JSON frames for network transmission.
 
 ### 2.2 Wireless Transport & Gateway
 Packets are formatted as compact, self-describing JSON objects and transmitted at a synchronous **20 Hz frequency** (50 ms epoch). The Node.js gateway provides:
-- A non-blocking asynchronous REST endpoint (`POST /api/telemetry/ingest`) for microcontrollers.
+- A non-blocking asynchronous REST endpoint (`POST /api/telemetry/ingest`) for external telemetry injection.
 - A bi-directional WebSocket server (`ws://.../telemetry-stream`) broadcasting real-time updates to all connected browser dashboards with average local latency under 12 ms.
 
 ---

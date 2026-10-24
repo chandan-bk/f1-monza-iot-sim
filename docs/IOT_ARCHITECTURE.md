@@ -8,50 +8,43 @@ This project implements an end-to-end telemetry pipeline demonstrating the compl
 
 ```mermaid
 flowchart LR
-    subgraph Edge ["Layer 1: Sensor & Edge Data Acquisition"]
-        S1["MPU6050 Accelerometer / Gyro (I2C)"]
-        S2["TCRT5000 IR Gate (GPIO Interrupt)"]
-        S3["DS18B20 Temp Sensor (OneWire)"]
-        S4["Virtual Powertrain Physics Core"]
-        ESP["ESP32 Microcontroller<br/>(20Hz JSON Serializer)"]
-        S1 --> ESP
-        S2 --> ESP
-        S3 --> ESP
-        S4 -.->|Mode 1 Virtual Ingest| GW
+    subgraph Edge ["Layer 1: Virtual Sensor Edge Core (60 FPS)"]
+        S1["Kinematics & Aerodynamics Engine"]
+        S2["Powertrain & Gearbox Model"]
+        S3["Brake & Tire Thermodynamic Model"]
+        SAMPLER["20Hz Telemetry Serializer<br/>(JSON Telemetry Frame)"]
+        S1 --> SAMPLER
+        S2 --> SAMPLER
+        S3 --> SAMPLER
     end
 
-    subgraph Transport ["Layer 2: Wireless Transport Network"]
-        WIFI["Wi-Fi 802.11 b/g/n<br/>(TCP/IP, 2.4 GHz)"]
-        ESP -->|HTTP POST / WebSocket| WIFI
+    subgraph Transport ["Layer 2: Real-Time Network Transport"]
+        WS["Full-Duplex WebSocket Protocol<br/>(/telemetry-stream)"]
+        REST["HTTP REST Ingest Endpoint<br/>(/api/telemetry/ingest)"]
+        SAMPLER -->|20Hz WebSocket Stream| WS
     end
 
-    subgraph Gateway ["Layer 3: Telemetry Server & Ingestion Gateway"]
-        GW["Node.js / Express Gateway<br/>- REST Ingest (/api/telemetry/ingest)<br/>- WebSocket Server (/telemetry-stream)<br/>- Multi-Client Broadcast Buffer"]
-        WIFI --> GW
+    subgraph Gateway ["Layer 3: Telemetry Ingest & Relay Gateway (Node.js)"]
+        GW["Node.js Ingestion Gateway<br/>- 20Hz Packet Broadcast Dispatcher<br/>- 500-Sample Ring Buffer Cache<br/>- Multi-Client Concurrency Relay"]
+        WS --> GW
+        REST --> GW
     end
 
-    subgraph Presentation ["Layer 4: Pitwall Engineering Analytics UI"]
-        DASH["Browser Pitwall Dashboard<br/>- 60fps Rolling Canvas Charts<br/>- 2D GPS Vector Circuit Map<br/>- Rule-Based Alert Engine<br/>- Post-Race CSV Exporter"]
+    subgraph Presentation ["Layer 4: Pitwall Engineering Analytics Dashboard"]
+        DASH["Browser Pitwall Dashboard<br/>- 60fps Rolling Canvas Waveform Charts<br/>- 2D Vector GPS Track Radar<br/>- Automated Rule-Based Diagnostics<br/>- Multi-Lap CSV Data Exporter"]
         GW -->|WebSocket Broadcast| DASH
     end
 ```
 
 ---
 
-## 2. Telemetry Ingest Modes
+## 2. Telemetry Ingest Architecture
 
-### Mode 1: Virtual Simulation Mode (Self-Contained)
-- Vehicle kinematic equations and thermal models run directly inside the browser's JavaScript execution thread.
-- TelemetryEngine samples physical parameters at a synchronous **20 Hz** rate (every 50 ms).
-- Packets are passed to the Dashboard UI, plotted on Canvas graphs, evaluated by the Rule Engine, and forwarded via WebSocket to the server for distribution to secondary devices (e.g., tablet pitwall displays).
-
-### Mode 2: Hardware IoT Mode (Physical ESP32 Prototype)
-- An ESP32 microcontroller with an MPU6050 6-axis IMU, TCRT5000 optical gate, and DS18B20 temperature sensor measures real physical dynamics.
-- Connects over local Wi-Fi to the laptop's Node.js server.
-- The dashboard seamlessly visualizes incoming hardware measurements while maintaining clear sensor classification tags:
-  - `[PHYSICAL SENSOR]` for actual hardware inputs.
-  - `[DERIVED METRIC]` for calculated quantities (velocity integrals, lap timers).
-  - `[SIMULATION ONLY]` for parameters not supported on the physical breadboard.
+### 20Hz Synchronous Telemetry Pipeline
+- Vehicle kinematic equations, aerodynamic downforce ($F = \frac{1}{2}\rho C_l A v^2$), and thermal dissipation models run at 60 FPS in the simulation engine.
+- The `TelemetryEngine` samples these 30+ physical channels at a synchronous **20 Hz rate** (every 50 ms).
+- Structured JSON telemetry packets are streamed via WebSocket to the Node.js server, which broadcasts the live data stream to all connected client pitwall dashboards concurrently.
+- An open REST endpoint (`POST /api/telemetry/ingest`) is also provided to support programmatic telemetry injection from external data feeds.
 
 ---
 
@@ -74,7 +67,7 @@ flowchart LR
 - **Request Body**:
 ```json
 {
-  "source": "esp32_prototype_devkit_v1",
+  "source": "virtual_physics_core",
   "timestamp_ms": 1729014520100,
   "lap": 1,
   "lap_time_s": 14.85,

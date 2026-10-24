@@ -360,30 +360,17 @@ class F1SimApp {
     const btnToggleAutoDrive = document.getElementById('btn-toggle-autodrive');
     const btnQuickRace = document.getElementById('btn-start-quick-race');
     const btnTimeTrial = document.getElementById('btn-start-time-trial');
-    const btnHardwareMode = document.getElementById('btn-hardware-mode');
     const btnExportCsv = document.getElementById('btn-export-csv');
     const btnReturnMenu = document.getElementById('btn-return-menu');
     const btnLayoutDriver = document.getElementById('btn-view-driver');
     const btnLayoutSplit = document.getElementById('btn-view-split');
     const btnLayoutEngineer = document.getElementById('btn-view-engineer');
-    const modeToggle = document.getElementById('btn-toggle-iot-mode');
     const btnQuickCam = document.getElementById('btn-quick-cam');
 
     if (btnStartAutoRace) btnStartAutoRace.onclick = () => this.startRace('AUTONOMOUS_RACE');
     if (btnToggleAutoDrive) btnToggleAutoDrive.onclick = () => this.toggleAutoDrive();
     if (btnQuickRace) btnQuickRace.onclick = () => this.startRace('QUICK_RACE');
-    if (btnTimeTrial) btnTimeTrial.onclick = () => this.startRace('TIME_TRIAL');
-    if (btnHardwareMode) {
-      btnHardwareMode.onclick = () => {
-        this.bridge.setMode('HARDWARE_ESP32');
-        this.startRace('QUICK_RACE');
-      };
-    }
-    if (modeToggle) {
-      modeToggle.onclick = () => {
-        const next = this.bridge.mode === 'SIMULATION' ? 'HARDWARE_ESP32' : 'SIMULATION';
-        this.bridge.setMode(next);
-      };
+    if (btnTimeTrial) btnTimeTrial.onclick = () => this.startRace('TIME_TRIAL');;
     }
     if (btnExportCsv) btnExportCsv.onclick = () => this.postRace.exportCSV();
     if (btnReturnMenu) btnReturnMenu.onclick = () => this.showScreen('screen-menu');

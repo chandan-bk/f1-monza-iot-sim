@@ -3,7 +3,7 @@
 **Project Title:** Application of IoT in Motorsport: Real-Time Race Car Telemetry Monitoring and Performance Analysis  
 **Circuit:** Autodromo Nazionale Monza (5,793m Grand Prix Layout)  
 **Grid:** 6-Car Live Field (Scuderia Ferrari HP, Oracle Red Bull Racing, Mercedes-AMG, McLaren, Aston Martin Aramco, BWT Alpine)  
-**Engineering Domains:** Internet of Things (IoT), Embedded Systems (ESP32), Vehicle Dynamics, Edge Analytics, Distributed Gateways
+**Engineering Domains:** Internet of Things (IoT), Real-Time Telemetry Streaming, Vehicle Dynamics Simulation, Edge Diagnostics
 
 ---
 
@@ -83,19 +83,11 @@
 
 ---
 
-### Step 6: Physical IoT Hardware Integration (ESP32 Mode) (1.5 Minutes)
-- **Action:** Click **"Switch Ingest Mode"** in the top navigation bar to select **"● IoT HARDWARE (ESP32)"**.
-- **What to Show the Faculty:**
-  - Show the **`hardware/`** directory in the repository:
-    1. `esp32_telemetry_firmware.ino` (Arduino C++ firmware for ESP32 microcontroller).
-    2. `wiring_diagram_schematic.md` (Circuit pinouts for MPU6050 6-DOF IMU, TCRT5000 optical gate, DS18B20 1-Wire temperature sensor).
-    3. `sample_packets.json` (Real JSON payload emitted by the hardware).
-  - Point to the clear engineering categorization on the UI:
-    - `[PHYSICAL SENSOR]` for actual hardware inputs.
-    - `[DERIVED METRIC]` for calculated integrals.
-    - `[SIMULATION ONLY]` for parameters modeled by the physics engine.
-- **Talking Points for Faculty:**
-  > *"The platform is fully cyber-physical. Our ESP32 firmware samples an MPU6050 accelerometer and gyroscope at 20Hz over I2C, utilizes a TCRT5000 infrared optical sensor for hardware interrupt lap timing, and transmits structured JSON telemetry frames over Wi-Fi directly to our Node.js gateway. Our architecture transparently tags every channel so the engineer knows what is physical hardware vs. derived calculation."*
+### Step 6: Explaining the Telemetry Origin: Physics Simulation to IoT Gateway (1.5 Minutes)
+- **Action:** Point to the live 20Hz telemetry status and show the network WebSocket tab in browser DevTools.
+- **What to Explain to Faculty (Direct Answer to "Where does the data come from?"):**
+  > *"Respected professors, our project is an end-to-end software simulation and IoT telemetry streaming platform. The data is generated directly by our VehiclePhysics core running at 60 FPS in the browser. It solves analytical equations for aerodynamic downforce, Brembo brake rotor thermal dissipation, Pirelli tire degradation, and hybrid ERS-K deployment.  
+  > Every 50 milliseconds (20 Hz), our Telemetry Engine samples those 30+ physical channels, packages them into standardized JSON packets, and transmits them over a bi-directional WebSocket gateway to our Node.js server. This demonstrates the exact telemetry architecture used by Formula 1 teams (ATLAS / MoTeC), where the physics engine acts as the virtual sensor source."*
 
 ---
 
@@ -106,7 +98,7 @@ When your professor asks: *"What is existing in motorsport IoT and what have you
 | Engineering Dimension | Existing in Real Motorsport (F1 / WEC) | Our Project Implementation & Innovations | Why Our Approach is Better for University Evaluation |
 |---|---|---|---|
 | **Telemetry Architecture** | Proprietary closed ecosystems (McLaren Applied ATLAS, Magneti Marelli, Bosch Motorsport). Heavy, expensive license dongles costing $\$50,000+$. | **Open Web & Node.js IoT Stack:** Built on standard WebSockets, REST APIs, Three.js WebGL, and HTML5 Canvas. | Completely portable, open-source, runs in any modern browser without proprietary hardware licenses. |
-| **Data Acquisition (DAQ)** | Dedicated mil-spec CAN-FD / Ethernet bus linking 300+ sensors to an ECU (TAG-320). | **Dual-Mode Cyber-Physical Pipeline:** Ingests from real **ESP32 microcontroller** (MPU6050 IMU, TCRT5000 IR gate) or virtual 60Hz physics core. | Bridges physical embedded hardware lab work with interactive real-time 3D simulation. |
+| **Data Acquisition (DAQ)** | Dedicated mil-spec CAN-FD / Ethernet bus linking 300+ sensors to an ECU (TAG-320). | **High-Fidelity Virtual Telemetry Engine:** Analytical vehicle physics core computing 30+ physical channels (aerodynamics, tire thermals, brake heat, hybrid ERS) at 60 FPS, sampled synchronously at 20 Hz. | Eliminates expensive sensor hardware while preserving physical mathematical validity. |
 | **Sampling & Ingest Rate** | $10\text{ Hz}$ to $200\text{ Hz}$ depending on channel (20Hz chassis, 100Hz dampers). | **Synchronous 20Hz Telemetry Engine:** Emits structured JSON frames every $50\text{ ms}$ with sub-15ms delivery latency. | Matches real chassis DAQ sampling while remaining lightweight for browser rendering. |
 | **Track & Circuit Simulation** | Multi-million dollar driver-in-the-loop (DIL) static simulators (Cruden, Ansible Motion). | **Zero-Obstacle Curvilinear Monza Spline:** 5,793m exact track with continuous ribbon fencing, realistic runoffs, and 3D kerbs. | Runs smoothly at 60 FPS directly on a student laptop with ACES Filmic tone mapping. |
 | **Multi-Vehicle AI Racecraft** | Simple AI often runs on fixed rails; either crashes or conga-lines behind slower cars. | **Competitive Multi-Agent F1 Intelligence:** Incorporates slipstream tow pocket ($+22\text{ km/h}$), DRS, early multi-lane overtaking, and late-braking chicane dive-bombs. | Entertaining, competitive racing showcasing dynamic position swaps and multi-car telemetry. |
@@ -122,5 +114,5 @@ When your professor asks: *"What is existing in motorsport IoT and what have you
 **Q2: Why were the cars slowing down previously, and how did you make them competitive?**  
 *Answer:* The earlier algorithm contained an aggressive collision avoidance clamp that reduced target speed to `other.speedKmh - 1.5` whenever a trailing car closed within 8.5 meters. This triggered harsh braking and created an artificial conga-line. We removed the speed penalty and replaced it with a multi-lane overtaking controller: trailing cars enter the slipstream tow pocket within 42m ($+22\text{ km/h}$ boost), step out into clear lateral lanes with 100% full throttle, and perform late-braking dive-bombs into chicanes based on driver aggression profiles.
 
-**Q3: How does your system differentiate physical hardware from simulation proxies?**  
-*Answer:* When operating in ESP32 Hardware Mode, incoming JSON packets originating from the microcontroller are stamped with source `esp32_prototype_devkit_v1`. On the dashboard, physical IMU accelerations are tagged with `[PHYSICAL SENSOR]`, calculated velocities with `[DERIVED METRIC]`, and parameters not supported on the breadboard (such as tire pressure) with `[SIMULATION ONLY]`, ensuring academic integrity.
+**Q3: Where is the data being fetched from? Is there physical hardware?**  
+*Answer:* This project is intentionally a 100% software and simulation-based IoT demonstration. Rather than connecting a toy breadboard with noisy readings, our telemetry data is generated by our custom vehicle dynamics physics core running at 60 FPS in the browser. It solves analytical differential equations for vehicle kinematics, speed-squared downforce, brake kinetic thermal conversion, and 4-corner tire thermodynamics. That data is sampled synchronously at 20Hz by the Telemetry Engine, formatted into standardized JSON packets, and dispatched over WebSocket and REST endpoints to the server and pitwall dashboard—demonstrating the exact same end-to-end IoT pipeline used by professional motorsport teams, with the vehicle physics environment acting as the virtual sensor source.

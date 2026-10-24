@@ -7,12 +7,11 @@
 
 In contemporary top-tier motorsport (Formula 1, World Endurance Championship, Formula E), winning is governed as much by real-time data science and embedded telemetry as by driver skill. A modern Formula 1 car acts as a distributed, high-speed Edge IoT sensor platform carrying over 300 physical sensors connected to an onboard Engine Control Unit (ECU) via CAN-FD and Ethernet buses. Across a single Grand Prix, a car generates upwards of 3 GB of telemetry data transmitted over trackside microwave telemetry relays to the pitwall and factory mission control.
 
-This project delivers an end-to-end cyber-physical telemetry ecosystem combining:
+This project delivers an end-to-end software simulation and telemetry ecosystem combining:
 1. **A physically rigorous 3D racing simulator** modeling vehicle kinematics, aerodynamics, powertrain torque curves, and 4-corner tire thermodynamics on an exact 5,793-meter Autodromo Nazionale Monza circuit.
 2. **A competitive multi-vehicle autonomous AI engine** incorporating slipstream wake drafting (+22 km/h tow boost), active DRS deployment, multi-lane overtaking, and late-braking chicane dive-bombs without artificial speed throttling.
 3. **A synchronous 20Hz IoT Telemetry Engine & Ingestion Gateway** serializing 30+ physical channels into structured JSON payloads over REST and WebSocket interfaces.
-4. **An embedded hardware telematics bridge** powered by the ESP32 microcontroller with an MPU6050 6-DOF IMU, TCRT5000 optical lap trigger, and DS18B20 1-Wire temperature probe.
-5. **A professional Pitwall Engineering Dashboard** featuring 60 FPS rolling canvas waveform charts, a 2D GPS track radar, an automated rule-based diagnostic engine, and multi-lap CSV export.
+4. **A professional Pitwall Engineering Dashboard** featuring 60 FPS rolling canvas waveform charts, a 2D GPS track radar, an automated rule-based diagnostic engine, and multi-lap CSV export.
 
 ---
 
@@ -20,42 +19,33 @@ This project delivers an end-to-end cyber-physical telemetry ecosystem combining
 
 ```mermaid
 flowchart TD
-    subgraph Layer1 ["Layer 1: Sensor & Edge Data Acquisition Layer"]
-        subgraph PhysicalEdge ["Physical IoT Hardware Node (ESP32)"]
-            IMU["MPU6050 6-Axis IMU<br/>(3-Axis Accelerometer + 3-Axis Gyro)"]
-            OPT["TCRT5000 Optical Infrared Gate<br/>(Hardware GPIO Interrupt Lap Trigger)"]
-            TEMP["DS18B20 Digital Temp Sensor<br/>(1-Wire Thermal Probe)"]
-            ESP["ESP32 Microcontroller<br/>- 400kHz I2C Bus Driver<br/>- 20Hz Synchronous JSON Packager<br/>- Wi-Fi 802.11 b/g/n TCP/IP Stack"]
-            IMU -->|I2C| ESP
-            OPT -->|GPIO4 Interrupt| ESP
-            TEMP -->|1-Wire GPIO15| ESP
-        end
-        
-        subgraph VirtualEdge ["High-Fidelity Virtual Physics Core (Browser / Node.js)"]
-            KINE["Vehicle Kinematics Core<br/>- 6-Car Curvilinear Spline Physics<br/>- Longitudinal Net Force: F_drive - F_brake - F_drag - F_rr<br/>- Lateral Lane Dynamics: clamped within safe tarmac"]
-            AERO["Aerodynamic Ground Effect<br/>- Downforce F_down = 1/2 * rho * Cl * A * v^2<br/>- Drag F_drag = 1/2 * rho * Cd * A * v^2<br/>- DRS Drag Reduction: Cd 0.68 -> 0.52"]
-            POWER["1.6L V6 Turbo Hybrid Powertrain<br/>- 8-Speed Sequential Monza Gearbox<br/>- 135 Nm ERS-K Electric Deploy & Harvesting<br/>- Torque Curve interpolation (4,000 - 15,000 RPM)"]
-            THERMO["Multiphysics Thermal Subsystems<br/>- 4-Wheel Pirelli Tire Model (FL, FR, RL, RR temp/wear/pressure)<br/>- Brembo Carbon-Carbon Brake Discs (350°C - 1000°C)<br/>- ICE Coolant Heat Flux vs. Radiator Airspeed Dissipation"]
-            AI["Competitive Multi-Agent AI Engine<br/>- Aerodynamic Slipstream Tow Pocket (+22 km/h tow)<br/>- Early Lateral Lane Pullout (Full throttle overtaking)<br/>- Driver Personality Matrix (VER, LEC, HAM, NOR, ALO, GAS)<br/>- Late-Braking Chicane Dive-Bombs"]
-            KINE <--> AERO
-            KINE <--> POWER
-            KINE <--> THERMO
-            KINE <--> AI
-        end
+    subgraph Layer1 ["Layer 1: Virtual Sensor & Vehicle Dynamics Engine"]
+        KINE["Vehicle Kinematics Core<br/>- 6-Car Curvilinear Spline Physics<br/>- Longitudinal Net Force: F_drive - F_brake - F_drag - F_rr<br/>- Lateral Lane Dynamics: clamped within safe tarmac"]
+        AERO["Aerodynamic Ground Effect<br/>- Downforce F_down = 1/2 * rho * Cl * A * v^2<br/>- Drag F_drag = 1/2 * rho * Cd * A * v^2<br/>- DRS Drag Reduction: Cd 0.68 -> 0.52"]
+        POWER["1.6L V6 Turbo Hybrid Powertrain<br/>- 8-Speed Sequential Monza Gearbox<br/>- 135 Nm ERS-K Electric Deploy & Harvesting<br/>- Torque Curve interpolation (4,000 - 15,000 RPM)"]
+        THERMO["Multiphysics Thermal Subsystems<br/>- 4-Wheel Pirelli Tire Model (FL, FR, RL, RR temp/wear/pressure)<br/>- Brembo Carbon-Carbon Brake Discs (350°C - 1000°C)<br/>- ICE Coolant Heat Flux vs. Radiator Airspeed Dissipation"]
+        AI["Competitive Multi-Agent AI Engine<br/>- Single-File & 2-Wide Racecraft Discipline<br/>- Aerodynamic Slipstream Tow Pocket (+22 km/h tow)<br/>- Driver Personality Matrix (VER, LEC, HAM, NOR, ALO, GAS)<br/>- Late-Braking Chicane Dive-Bombs"]
+        SAMPLER["20Hz Telemetry Sampler<br/>- Synchronous 50ms Sampling Epoch<br/>- JSON Telemetry Frame Serialization"]
+
+        KINE <--> AERO
+        KINE <--> POWER
+        KINE <--> THERMO
+        KINE <--> AI
+        KINE --> SAMPLER
+        THERMO --> SAMPLER
+        POWER --> SAMPLER
     end
 
     subgraph Layer2 ["Layer 2: Wireless Transport Network Layer"]
-        REST_HTTP["HTTP/1.1 REST Ingest<br/>POST /api/telemetry/ingest<br/>(ESP32 Hardware Stream)"]
-        WS_STREAM["Bi-Directional WebSocket Protocol<br/>ws://host:3000/telemetry-stream<br/>(Full-Duplex Telemetry Stream)"]
-        ESP -->|Wi-Fi 802.11 b/g/n| REST_HTTP
-        ESP -.->|WebSocket Client| WS_STREAM
-        VirtualEdge -->|Internal Event Bus / WebSocket| WS_STREAM
+        REST_HTTP["HTTP/1.1 REST Ingest Endpoint<br/>POST /api/telemetry/ingest<br/>(External / Simulated Ingest)"]
+        WS_STREAM["Bi-Directional WebSocket Protocol<br/>ws://host:3000/telemetry-stream<br/>(Full-Duplex 20Hz Telemetry Stream)"]
+        SAMPLER --> WS_STREAM
+        REST_HTTP --> INGEST
+        WS_STREAM <--> INGEST
     end
 
     subgraph Layer3 ["Layer 3: Telemetry Ingestion & Relay Gateway (Node.js)"]
-        INGEST["Ingestion Pipeline & Packet Normalizer<br/>- Source Identification: [PHYSICAL SENSOR] vs. [SIMULATION PROXY]<br/>- High-Frequency Ring Buffer (500 Packets Cache)<br/>- Multi-Client Broadcast Dispatcher"]
-        REST_HTTP --> INGEST
-        WS_STREAM <--> INGEST
+        INGEST["Ingestion Pipeline & Packet Cache<br/>- 20Hz Stream Dispatcher<br/>- High-Frequency Ring Buffer (500 Packets Cache)<br/>- Multi-Client Broadcast Relay"]
     end
 
     subgraph Layer4 ["Layer 4: Pitwall Engineering Analytics & 3D Visualization Layer"]
@@ -195,7 +185,7 @@ The Telemetry Engine serializes data every 50ms (20Hz) into a compact JSON frame
 | Evaluation Dimension | Existing Practice in Motorsport (F1 / WEC) | Our Project Implementation & Innovations | Academic & Practical Advantage |
 |---|---|---|---|
 | **Software Architecture** | Proprietary, closed-source suites (McLaren Applied ATLAS, Bosch Motorsport WinDarab). Multi-thousand dollar seat licenses. | **Open Web & Node.js IoT Stack:** Built on standard WebSockets, Three.js WebGL, and HTML5 Canvas. | Zero license fees, 100% portable, runs directly in any web browser without installation. |
-| **Hardware & Ingest Pipeline** | Expensive MIL-SPEC CAN-FD wiring looms with military grade ECUs (McLaren TAG-320). | **Dual-Mode Cyber-Physical Architecture:** Ingests from real **ESP32 microcontroller** (MPU6050, TCRT5000) or virtual 60Hz physics core. | Connects physical breadboard embedded systems to real-time interactive 3D simulation. |
+| **Data Acquisition (DAQ)** | Expensive MIL-SPEC CAN-FD wiring looms with military grade ECUs (McLaren TAG-320). | **High-Fidelity Virtual Telemetry Engine:** Analytical vehicle physics core computing 30+ physical channels (aerodynamics, tire thermals, brake heat, hybrid ERS) at 60 FPS, sampled synchronously at 20 Hz. | Eliminates costly sensor hardware while preserving physical mathematical validity. |
 | **Sampling & Bandwidth** | $10\text{ Hz}$ to $200\text{ Hz}$ channels. Telemetry radio burst over trackside microwave links. | **Synchronous 20Hz Sampling Pipeline:** 50ms epoch, sub-15ms delivery latency over Wi-Fi/WebSockets. | Optimal fidelity for capturing Turn 1 braking spikes while remaining lightweight for browser rendering. |
 | **Multi-Vehicle AI Behavior** | Traditional game AI runs on fixed spline rails; frequently causes conga-lines or crashes. | **Competitive Multi-Agent F1 Racecraft:** Dynamic slipstream drafting (+22 km/h), multi-lane lane pullouts, DRS, and late-braking chicanes. | Entertaining, realistic racing showing frequent position swaps and wheel-to-wheel battles. |
 | **Telemetry Analytics & Diagnostics** | Complex telemetry alarm scripting requiring full-time pitwall telemetry engineers. | **Automated Rule-Based Diagnostic Engine:** Continuous evaluation of coolant overheating, tire graining, and braking points. | Immediate, transparent, actionable engineering recommendations displayed in real-time. |

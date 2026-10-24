@@ -6,7 +6,7 @@
  * Handles:
  *  1. Static web asset serving (Driver 3D Simulator & Pitwall Engineering Dashboard)
  *  2. Real-time bi-directional WebSocket telemetry stream (/telemetry-stream)
- *  3. REST endpoint for physical IoT ESP32 ingest (POST /api/telemetry/ingest)
+ *  3. REST endpoint for external telemetry ingest (POST /api/telemetry/ingest)
  *  4. Multi-client broadcast (allows driving on PC while engineer monitors on tablet)
  * ============================================================================
  */
@@ -54,13 +54,6 @@ let latestTelemetryPacket = null;
 let telemetryHistoryBuffer = [];
 const MAX_BUFFER_SIZE = 500;
 let connectedClients = new Set();
-let hardwareStatus = {
-  esp32Connected: false,
-  lastSeenMs: 0,
-  packetCount: 0,
-  batteryVoltage: 3.7,
-  rssi_dbm: -58
-};
 
 let server;
 
@@ -69,26 +62,16 @@ if (express) {
   app.use(express.json());
   app.use(express.static(PUBLIC_DIR));
 
-  // REST ingest for ESP32 or HTTP IoT devices
+  // REST ingest endpoint for telemetry packets
   app.post('/api/telemetry/ingest', (req, res) => {
     const packet = req.body;
-    handleIncomingPacket(packet, 'esp32_http');
+    handleIncomingPacket(packet, 'rest_ingest');
     res.json({ status: 'ACK', timestamp: Date.now() });
   });
 
   // Query latest telemetry
   app.get('/api/telemetry/latest', (req, res) => {
     res.json(latestTelemetryPacket || { status: 'NO_DATA' });
-  });
-
-  // Query hardware bridge status
-  app.get('/api/hardware-status', (req, res) => {
-    const isAlive = (Date.now() - hardwareStatus.lastSeenMs) < 3000;
-    res.json({
-      ...hardwareStatus,
-      esp32Connected: isAlive,
-      connectedDashboardClients: connectedClients.size
-    });
   });
 
   server = http.createServer(app);
@@ -104,7 +87,7 @@ if (express) {
       req.on('end', () => {
         try {
           const packet = JSON.parse(body);
-          handleIncomingPacket(packet, 'esp32_http');
+          handleIncomingPacket(packet, 'rest_ingest');
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ status: 'ACK', timestamp: Date.now() }));
         } catch (err) {
@@ -118,17 +101,6 @@ if (express) {
     if (pathname === '/api/telemetry/latest') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(latestTelemetryPacket || { status: 'NO_DATA' }));
-      return;
-    }
-
-    if (pathname === '/api/hardware-status') {
-      const isAlive = (Date.now() - hardwareStatus.lastSeenMs) < 3000;
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        ...hardwareStatus,
-        esp32Connected: isAlive,
-        connectedDashboardClients: connectedClients.size
-      }));
       return;
     }
 
@@ -200,15 +172,6 @@ function handleIncomingPacket(packet, source) {
   packet.server_received_at = Date.now();
   latestTelemetryPacket = packet;
 
-  // Track hardware heartbeat if from ESP32
-  if (source.includes('esp32')) {
-    hardwareStatus.esp32Connected = true;
-    hardwareStatus.lastSeenMs = Date.now();
-    hardwareStatus.packetCount++;
-    if (packet.battery_v) hardwareStatus.batteryVoltage = packet.battery_v;
-    if (packet.rssi_dbm) hardwareStatus.rssi_dbm = packet.rssi_dbm;
-  }
-
   // Push to buffer
   telemetryHistoryBuffer.push(packet);
   if (telemetryHistoryBuffer.length > MAX_BUFFER_SIZE) {
@@ -231,6 +194,6 @@ server.listen(PORT, () => {
   console.log(`================================================================`);
   console.log(`  ✓ Web Application:   http://localhost:${PORT}`);
   console.log(`  ✓ WebSocket Gateway: ws://localhost:${PORT}/telemetry-stream`);
-  console.log(`  ✓ ESP32 Ingest URL:  http://localhost:${PORT}/api/telemetry/ingest`);
+  console.log(`  ✓ REST Ingest API:   http://localhost:${PORT}/api/telemetry/ingest`);
   console.log(`================================================================\n`);
 });

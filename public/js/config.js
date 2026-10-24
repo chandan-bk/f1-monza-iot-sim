@@ -298,19 +298,15 @@ window.F1_CONFIG = {
     ]
   },
 
-  // IoT Hardware Schema & Mode Constants
+  // IoT Telemetry Pipeline Configuration
   IOT: {
-    SAMPLE_RATE_HZ: 20,           // 20 telemetry updates per second (50ms interval)
-    ESP32_DEFAULT_PORT: 8080,
+    SAMPLE_RATE_HZ: 20,           // 20 telemetry updates per second (50ms synchronous interval)
     WS_ENDPOINT: "/telemetry-stream",
     REST_INGEST_ENDPOINT: "/api/telemetry/ingest",
-    SENSORS: {
-      MPU6050: { bus: "I2C 0x68", rate: "100Hz", params: ["accel_x_g", "accel_y_g", "accel_z_g", "gyro_z_dps"] },
-      TCRT5000_IR: { pin: "GPIO4 Interrupt", rate: "Edge-triggered", params: ["ir_beam_lap_trigger", "sector_beam_trigger"] },
-      DS18B20: { bus: "OneWire GPIO18", rate: "2Hz", params: ["ambient_temp_c", "chassis_temp_c"] },
-      HALL_EFFECT: { pin: "GPIO19/23", rate: "Pulses", params: ["wheel_speed_kmh", "engine_rpm"] },
-      MLX90614_IR: { bus: "I2C 0x5A", rate: "10Hz", params: ["tire_fl_temp", "tire_fr_temp", "tire_rl_temp", "tire_rr_temp"] },
-      K_THERMOCOUPLE: { bus: "SPI MAX6675", rate: "10Hz", params: ["brake_fl_rotor_temp", "brake_fr_rotor_temp"] }
-    }
+    CHANNELS: [
+      "speed_kmh", "engine_rpm", "gear", "throttle_pct", "brake_pct",
+      "longitudinal_g", "lateral_g", "wheel_slip_pct", "drs_status",
+      "engine_temp_c", "tires", "brakes", "ers_soc_pct", "track_distance_m"
+    ]
   }
 };
