@@ -1017,3 +1017,26 @@ html, body {
   border-left: 3px solid var(--telemetry-cyan) !important;
   background: rgba(0, 229, 255, 0.16) !important;
 }
+
+.data-table tbody tr {
+  transition: background 0.15s ease;
+}
+.data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+.row-monitored {
+  background: rgba(0, 229, 255, 0.16) !important;
+  box-shadow: inset 3px 0 0 #00e5ff;
+}
+.live-telemetry-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.18);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  letter-spacing: 0.5px;
+}

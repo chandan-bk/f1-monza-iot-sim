@@ -525,6 +525,7 @@ class F1SimApp {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    if (this.dashboard && this.dashboard.resizeCanvases) this.dashboard.resizeCanvases();
   }
 
   animate() {

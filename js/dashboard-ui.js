@@ -65,6 +65,21 @@ class DashboardUI {
         }
       };
     });
+
+    // Interactive Leaderboard row selection
+    const tbody = document.getElementById('leaderboard-body');
+    if (tbody && !this.leaderboardClickBound) {
+      this.leaderboardClickBound = true;
+      tbody.onclick = (e) => {
+        const row = e.target.closest('tr[data-car-idx]');
+        if (row) {
+          const idx = parseInt(row.getAttribute('data-car-idx'), 10);
+          if (!isNaN(idx) && this.onSelectCarCallback) {
+            this.onSelectCarCallback(idx);
+          }
+        }
+      };
+    }
   }
 
   setMonitoredCarIndex(idx, driverInfo) {
@@ -243,11 +258,11 @@ class DashboardUI {
 
     const trackLen = this.track.trackLength;
     const cars = [
-      { p: player, code: player.driver.code, name: player.driver.name, num: player.driver.number, color: player.driver.color }
+      { p: player, code: player.driver.code, name: player.driver.name, num: player.driver.number, color: player.driver.color, originalIdx: 0 }
     ];
 
     const flattenedAI = Array.isArray(aiCarsList[0]) ? aiCarsList[0] : aiCarsList;
-    flattenedAI.forEach(ai => {
+    flattenedAI.forEach((ai, idx) => {
       const phys = ai && ai.physics ? ai.physics : ai;
       if (phys && phys.driver) {
         cars.push({
@@ -255,7 +270,8 @@ class DashboardUI {
           code: phys.driver.code,
           name: phys.driver.name,
           num: phys.driver.number,
-          color: phys.driver.color
+          color: phys.driver.color,
+          originalIdx: idx + 1
         });
       }
     });
@@ -288,7 +304,7 @@ class DashboardUI {
       const monTag = isMonitored ? '<span class="live-telemetry-badge">● LIVE SENSOR</span>' : '';
 
       html += `
-        <tr ${rowClass} data-car-code="${c.code}" style="cursor:pointer;" title="Click to monitor this car's IoT telemetry">
+        <tr ${rowClass} data-car-idx="${c.originalIdx}" data-car-code="${c.code}" style="cursor:pointer;" title="Click to monitor this car's IoT telemetry">
           <td><span class="pos-badge pos-${pos}">P${pos}</span></td>
           <td style="color:${c.color}; font-weight:bold;">#${c.num} ${c.code}</td>
           <td>${c.p.lapCount}</td>
@@ -324,7 +340,7 @@ class DashboardUI {
     }
 
     if (logs.length === 0) {
-      html = '<div class="event-empty">Telemetry telemetry stream active. All subsystems nominal.</div>';
+      html = '<div class="event-empty">● Telemetry stream active (20Hz). All subsystems nominal.</div>';
     }
 
     listEl.innerHTML = html;
@@ -640,6 +656,27 @@ class DashboardUI {
     ctx.fillStyle = '#94a3b8';
     ctx.font = '9px monospace';
     ctx.fillText("G-G TRACTION CIRCLE", 8, 14);
+  }
+  resizeCanvases() {
+    const list = [
+      { c: this.chartSpeedCanvas, minW: 360, h: 120 },
+      { c: this.chartPedalsCanvas, minW: 360, h: 120 },
+      { c: this.chartRpmCanvas, minW: 360, h: 120 },
+      { c: this.chartTempsCanvas, minW: 360, h: 120 },
+      { c: this.chartGgCanvas, minW: 280, h: 180 }
+    ];
+    list.forEach(item => {
+      if (item.c && item.c.clientWidth > 0) {
+        item.c.width = Math.max(item.minW, item.c.clientWidth);
+        item.c.height = item.h;
+      }
+    });
+
+    const trackMapCanvas = document.getElementById('track-map-canvas');
+    if (trackMapCanvas && trackMapCanvas.clientWidth > 0) {
+      trackMapCanvas.width = trackMapCanvas.clientWidth;
+      trackMapCanvas.height = 150;
+    }
   }
 }
 

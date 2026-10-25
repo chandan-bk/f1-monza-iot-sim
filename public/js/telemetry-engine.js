@@ -254,12 +254,12 @@ class TelemetryEngine {
 
     // Rule 5: Turn 1 Braking Point Telemetry Logging
     // Chicane entry begins at distance ~650m-720m
-    if (packet.track_distance_m >= 650 && packet.track_distance_m <= 750 && packet.brake_pct > 60) {
+    if (packet.track_distance_m >= 920 && packet.track_distance_m <= 1060 && packet.brake_pct > 50) {
       if (!this.brakePointTurn1) {
         this.brakePointTurn1 = packet.track_distance_m;
         this.logEvent("INFO", "TELEMETRY", `Turn 1 Braking initiated at ${this.brakePointTurn1}m (Speed: ${packet.speed_kmh} km/h, Decel: ${packet.longitudinal_g}G).`);
       }
-    } else if (packet.track_distance_m > 800) {
+    } else if (packet.track_distance_m < 200 && this.brakePointTurn1) {
       this.brakePointTurn1 = null; // Reset for next lap
     }
 

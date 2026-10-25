@@ -35,6 +35,8 @@ class AIDriverController {
     this.overtakeTimer = 0.0;
     this.isPassing = false;
     this.targetSpeedKmh = 350.0;
+    this.smoothThrottle = 0.0;
+    this.smoothBrake = 0.0;
   }
 
   update(dt, ...otherCarsArgs) {
@@ -70,7 +72,7 @@ class AIDriverController {
 
     // 2. Identify track zone: Overtaking is strictly focused on passing straights
     // (Main Straight, Roggia chute, Serraglio underpass blast, and Back straight)
-    const isPassingStraight = (curDist < 880) || 
+    const isPassingStraight = (curDist < 920) || 
                               (curDist >= 2100 && curDist <= 2450) || 
                               (curDist >= 3250 && curDist <= 4150) || 
                               (curDist >= 4600 && curDist <= 5150);
@@ -114,9 +116,9 @@ class AIDriverController {
     }
 
     // 5. Lookahead Anticipatory Braking & Late-Braking Dive-Bombs
-    let lookaheadMeters = Math.max(22.0, (currentSpeedKmh / 350.0) * 115.0);
+    let lookaheadMeters = Math.max(16.0, (currentSpeedKmh / 350.0) * 62.0);
     if (this.isPassing && currentSpeedKmh > 240) {
-      lookaheadMeters = Math.max(18.0, lookaheadMeters - this.profile.lateBraking);
+      lookaheadMeters = Math.max(14.0, lookaheadMeters - (this.profile.lateBraking * 0.5));
     }
 
     const lookaheadDist = (curDist + lookaheadMeters) % trackLen;
@@ -129,11 +131,20 @@ class AIDriverController {
       targetSpeed += this.profile.slipstream;
     }
 
-    // 6. Smooth Slipstream Queue Distance Regulation (NO Conga-Line Braking!)
-    // When following behind another car and NOT passing alongside, smoothly match speed to stay in the draft
-    if (aheadCar && minAheadDist < 16.0 && !this.isPassing) {
-      const followSpeed = aheadCar.speedKmh + (minAheadDist - 11.0) * 1.8;
-      targetSpeed = Math.min(targetSpeed, followSpeed);
+    // 6. Smooth Slipstream Queue Distance Regulation (Elastic Draft Following)
+    if (aheadCar && !this.isPassing) {
+      const desiredGap = Math.max(5.5, (currentSpeedKmh / 350.0) * 11.5);
+      if (minAheadDist < desiredGap * 2.0) {
+        const distRatio = minAheadDist / desiredGap;
+        if (distRatio < 1.0) {
+          // Gently match speed with smooth proportional reduction
+          const followSpeed = aheadCar.speedKmh * (0.88 + distRatio * 0.12);
+          targetSpeed = Math.min(targetSpeed, Math.max(68.0, followSpeed));
+        } else {
+          // In the prime slipstream tow window
+          targetSpeed = Math.min(targetSpeed, aheadCar.speedKmh + 8.0);
+        }
+      }
     }
 
     this.targetSpeedKmh = targetSpeed;
@@ -154,31 +165,47 @@ class AIDriverController {
     const maxHalfWidth = (this.track.config.width_m / 2) - 1.2;
     targetOffset = THREE.MathUtils.clamp(targetOffset, -maxHalfWidth, maxHalfWidth);
 
-    // 8. Longitudinal Throttle vs. Trail Braking
+    // 8. Longitudinal Throttle vs. Trail Braking (Proportional & Progressive - Zero Glitch)
     const speedDiff = targetSpeed - currentSpeedKmh;
-    let throttleInput = 0;
-    let brakeInput = 0;
+    let targetThrottle = 0;
+    let targetBrake = 0;
 
-    if (speedDiff > 2.0) {
-      throttleInput = 1.0;
-      brakeInput = 0.0;
-    } else if (speedDiff < -8.0) {
-      throttleInput = 0.0;
-      const decelDemand = Math.abs(speedDiff) / 22.0;
-      brakeInput = THREE.MathUtils.clamp(decelDemand, 0.40, 1.0);
+    if (speedDiff >= 3.0) {
+      // Full power acceleration
+      targetThrottle = 1.0;
+      targetBrake = 0.0;
+    } else if (speedDiff >= 0.0) {
+      // Proportional speed maintenance against aero drag and rolling resistance
+      targetThrottle = 0.35 + (speedDiff / 3.0) * 0.65;
+      targetBrake = 0.0;
+    } else if (speedDiff >= -5.0) {
+      // Smooth Lift-and-Coast: Aerodynamic drag (0.6G - 0.8G) trims 1-5 km/h naturally without friction braking!
+      targetThrottle = 0.0;
+      targetBrake = 0.0;
+    } else if (speedDiff >= -15.0) {
+      // Smooth, progressive trail-braking (NO harsh 40% jump)
+      targetThrottle = 0.0;
+      const decelFraction = (Math.abs(speedDiff) - 5.0) / 10.0;
+      targetBrake = 0.04 + decelFraction * 0.26; // Smooth 0.04 to 0.30 brake
     } else {
-      throttleInput = 0.65;
-      brakeInput = 0.0;
+      // Heavy braking for major chicane entries (Turn 1, Roggia, Ascari)
+      targetThrottle = 0.0;
+      const heavyDecel = (Math.abs(speedDiff) - 15.0) / 35.0;
+      targetBrake = THREE.MathUtils.clamp(0.35 + heavyDecel * 0.65, 0.35, 1.0);
     }
+
+    // Rate-limited pedal smoothing prevents 1-frame discontinuous jerk/lag
+    this.smoothThrottle = THREE.MathUtils.lerp(this.smoothThrottle, targetThrottle, Math.min(1.0, dt * 14.0));
+    this.smoothBrake = THREE.MathUtils.lerp(this.smoothBrake, targetBrake, Math.min(1.0, dt * 16.0));
 
     const isDrs = (curDist >= 120 && curDist <= 950) || (curDist >= 4400 && curDist <= 5180);
 
     // Feed controls directly into VehiclePhysics
     this.physics.update(dt, {
-      throttle: throttleInput,
-      brake: brakeInput,
+      throttle: this.smoothThrottle,
+      brake: this.smoothBrake,
       targetOffset: targetOffset,
-      drs: isDrs && brakeInput < 0.05
+      drs: isDrs && this.smoothBrake < 0.05
     });
   }
 

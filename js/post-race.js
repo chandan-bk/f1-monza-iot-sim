@@ -41,7 +41,7 @@ class PostRaceAnalysis {
     }
   }
 
-  populateResults(player, ...aiCarsList) {
+  populateResults(player, aiCarsList, mode = "AUTONOMOUS_RACE") {
     const trackLen = window.F1_CONFIG.CIRCUIT.length_m;
     const cars = [
       { p: player, code: player.driver.code, name: player.driver.name, num: player.driver.number, team: player.driver.team, color: player.driver.color }
