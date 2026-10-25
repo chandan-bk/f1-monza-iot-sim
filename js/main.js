@@ -370,14 +370,13 @@ class F1SimApp {
     if (btnStartAutoRace) btnStartAutoRace.onclick = () => this.startRace('AUTONOMOUS_RACE');
     if (btnToggleAutoDrive) btnToggleAutoDrive.onclick = () => this.toggleAutoDrive();
     if (btnQuickRace) btnQuickRace.onclick = () => this.startRace('QUICK_RACE');
-    if (btnTimeTrial) btnTimeTrial.onclick = () => this.startRace('TIME_TRIAL');;
-    }
+    if (btnTimeTrial) btnTimeTrial.onclick = () => this.startRace('TIME_TRIAL');
     if (btnExportCsv) btnExportCsv.onclick = () => this.postRace.exportCSV();
     if (btnReturnMenu) btnReturnMenu.onclick = () => this.showScreen('screen-menu');
     if (btnQuickCam) btnQuickCam.onclick = () => this.toggleCamera();
 
     if (btnLayoutDriver) btnLayoutDriver.onclick = () => this.setViewLayout('DRIVER_ONLY');
-    if (btnLayoutSplit) btnLayoutSplit.onclick = () => this.setViewLayout('DRIVER_ONLY');
+    if (btnLayoutSplit) btnLayoutSplit.onclick = () => this.setViewLayout('SPLIT');
     if (btnLayoutEngineer) btnLayoutEngineer.onclick = () => this.setViewLayout('ENGINEER_ONLY');
 
     const btnMute = document.getElementById('btn-audio-mute');
