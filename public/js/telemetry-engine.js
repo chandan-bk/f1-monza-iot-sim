@@ -43,6 +43,8 @@ class TelemetryEngine {
     this.lastBrakeAlertTime = 0;
     this.lastSlipAlertTime = 0;
     this.lastTrackLimitTime = 0;
+    this.currentUrgentAlert = null;
+    this.punctureActive = false;
   }
 
   setTargetPhysics(newPhysics) {
@@ -60,6 +62,9 @@ class TelemetryEngine {
     }
 
     this.lastSampleTimeMs = currentSessionTimeMs;
+    if (this.punctureActive && this.physics && this.physics.tires && this.physics.tires.fl && this.physics.tires.fl.pressure > 1.05) {
+      this.physics.tires.fl.pressure -= 0.003;
+    }
 
     // 1. Capture Raw Simulation Physics State into Telemetry Frame
     const packet = this.buildTelemetryPacket(currentSessionTimeMs);
@@ -114,6 +119,10 @@ class TelemetryEngine {
         fr_temp_c: Number(p.tires.fr.temp.toFixed(1)),
         rl_temp_c: Number(p.tires.rl.temp.toFixed(1)),
         rr_temp_c: Number(p.tires.rr.temp.toFixed(1)),
+        fl_pressure_bar: Number(((p.tires.fl.pressure !== undefined ? p.tires.fl.pressure : 1.65)).toFixed(2)),
+        fr_pressure_bar: Number(((p.tires.fr.pressure !== undefined ? p.tires.fr.pressure : 1.65)).toFixed(2)),
+        rl_pressure_bar: Number(((p.tires.rl.pressure !== undefined ? p.tires.rl.pressure : 1.45)).toFixed(2)),
+        rr_pressure_bar: Number(((p.tires.rr.pressure !== undefined ? p.tires.rr.pressure : 1.45)).toFixed(2)),
         avg_wear_pct: Number(((p.tires.fl.wear + p.tires.fr.wear + p.tires.rl.wear + p.tires.rr.wear) / 4).toFixed(1))
       },
       brakes: {
@@ -204,6 +213,66 @@ class TelemetryEngine {
         `Lap ${lapNumber} completed: ${this.physics.lastLapTime.toFixed(3)}s. Sector times: S1: ${this.physics.sector1Time.toFixed(3)}s, S2: ${this.physics.sector2Time.toFixed(3)}s.`
       );
     }
+  }
+
+  // --------------------------------------------------------------------------
+  // ACTIVE IOT INCIDENT & STRATEGIC SCENARIOS (Faculty Presentation Tools)
+  // --------------------------------------------------------------------------
+  injectBrakeOverheat() {
+    if (!this.physics || !this.physics.brakes) return;
+    this.physics.brakes.fl.temp = 1025.0;
+    this.physics.brakes.fr.temp = 980.0;
+    this.currentUrgentAlert = {
+      type: "CRITICAL",
+      icon: "🚨",
+      title: "BRAKE ROTOR THERMAL RUNAWAY (1,025°C)",
+      desc: "Front-left rotor exceeds structural limit (950°C). Hydraulic fluid vaporization imminent!",
+      action: "ACTION REQUIRED: Lift & coast 100m into Turn 1. Adjust brake balance +2% rearward."
+    };
+    this.logEvent("CRITICAL", "BRAKES", "🚨 CRITICAL: FL Rotor 1025°C — Thermal Runaway! High risk of brake fade & fluid vaporization. Lift & coast immediately.");
+  }
+
+  injectSlowPuncture() {
+    if (!this.physics || !this.physics.tires) return;
+    if (!this.physics.tires.fl) this.physics.tires.fl = { temp: 88, wear: 0, pressure: 1.65 };
+    this.physics.tires.fl.pressure = 1.38;
+    this.physics.tires.fl.temp = 126.0;
+    this.punctureActive = true;
+    this.currentUrgentAlert = {
+      type: "CRITICAL",
+      icon: "⚠️",
+      title: "TPMS MICRO-LEAK DETECTED (1.38 bar)",
+      desc: "Front-left tire pressure falling at -0.06 bar/lap. Blowout hazard at 330 km/h on Parabolica!",
+      action: "ACTION REQUIRED: BOX BOX BOX THIS LAP for fresh Hard tires."
+    };
+    this.logEvent("CRITICAL", "TPMS", "⚠️ TPMS ALARM: Slow puncture on Front-Left (1.38 bar, norm 1.65). Pressure gradient -0.06 bar/s. Box this lap!");
+  }
+
+  triggerUndercutStrategy() {
+    if (!this.physics || !this.physics.tires) return;
+    this.physics.tires.fl.wear = 76.0;
+    this.physics.tires.fr.wear = 74.0;
+    this.currentUrgentAlert = {
+      type: "SUCCESS",
+      icon: "⏱️",
+      title: "UNDERCUT STRATEGY WINDOW OPEN",
+      desc: "Pirelli Soft tire degradation cliff reached (Wear 75%, Grip -22%). Delta to P2: +1.4s.",
+      action: "ACTION REQUIRED: Box this lap for Hard compound to execute undercut (+2.4s projected track gain)."
+    };
+    this.logEvent("SUCCESS", "STRATEGY", "⏱️ STRATEGY INSIGHT: Tire Cliff detected (Wear 75%). Undercut advantage +2.4s over rival. Pit window OPEN.");
+  }
+
+  triggerDrsAuthorization() {
+    if (!this.physics) return;
+    this.physics.drsActive = true;
+    this.currentUrgentAlert = {
+      type: "INFO",
+      icon: "⚡",
+      title: "DRS WING FLAP AUTHORIZED",
+      desc: "Trailing interval 0.68s < 1.00s at Detection Zone 2. Hydraulic flap opened on Rettifilo.",
+      action: "TELEMETRY STATUS: Aero drag reduced by 22%. Top speed increased by +16 km/h down main straight."
+    };
+    this.logEvent("INFO", "AERO", "⚡ DRS TELEMETRY: Gap 0.68s < 1.00s. Flap AUTHORIZED & OPEN. Top speed +16 km/h.");
   }
 
   // Rule-Based Engineering Analysis Logic

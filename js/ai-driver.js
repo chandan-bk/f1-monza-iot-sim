@@ -72,10 +72,10 @@ class AIDriverController {
 
     // 2. Identify track zone: Overtaking is strictly focused on passing straights
     // (Main Straight, Roggia chute, Serraglio underpass blast, and Back straight)
-    const isPassingStraight = (curDist < 920) || 
-                              (curDist >= 2100 && curDist <= 2450) || 
-                              (curDist >= 3250 && curDist <= 4150) || 
-                              (curDist >= 4600 && curDist <= 5150);
+    const isPassingStraight = (curDist < 1080) || 
+                              (curDist >= 2100 && curDist <= 2560) || 
+                              (curDist >= 3250 && curDist <= 4250) || 
+                              (curDist >= 4600 && curDist <= 5250);
 
     // 3. Strict 2-Wide Rule: Check if the car ahead is ALREADY engaged in a side-by-side battle!
     // In real racing, trailing cars DO NOT go 3-wide or 6-wide; they stay tucked behind in the draft!
@@ -109,10 +109,11 @@ class AIDriverController {
 
     if (this.overtakeTimer > 0) {
       this.overtakeTimer -= dt;
-      if (this.overtakeTimer <= 0 || !isPassingStraight) {
-        this.overtakeOffset = 0;
+      if (this.overtakeTimer <= 0) {
         this.isPassing = false;
       }
+    } else {
+      this.overtakeOffset = THREE.MathUtils.lerp(this.overtakeOffset, 0, Math.min(1.0, dt * 3.5));
     }
 
     // 5. Lookahead Anticipatory Braking & Late-Braking Dive-Bombs
@@ -131,28 +132,35 @@ class AIDriverController {
       targetSpeed += this.profile.slipstream;
     }
 
-    // 6. Smooth Slipstream Queue Distance Regulation (Elastic Draft Following)
+    // 6. Smooth Slipstream Queue Distance Regulation (Elastic Progressive Following - Zero Conga-Line Lag)
     if (aheadCar && !this.isPassing) {
-      const desiredGap = Math.max(5.5, (currentSpeedKmh / 350.0) * 11.5);
-      if (minAheadDist < desiredGap * 2.0) {
+      const desiredGap = Math.max(5.0, (currentSpeedKmh / 350.0) * 10.0);
+      if (minAheadDist < desiredGap * 2.2) {
         const distRatio = minAheadDist / desiredGap;
         if (distRatio < 1.0) {
-          // Gently match speed with smooth proportional reduction
-          const followSpeed = aheadCar.speedKmh * (0.88 + distRatio * 0.12);
-          targetSpeed = Math.min(targetSpeed, Math.max(68.0, followSpeed));
+          const followSpeed = aheadCar.speedKmh + (distRatio - 1.0) * 10.0;
+          const cornerFloor = this.calculateMonzaSpeed(curDist) * 0.95;
+          targetSpeed = Math.min(targetSpeed, Math.max(cornerFloor, followSpeed));
         } else {
-          // In the prime slipstream tow window
-          targetSpeed = Math.min(targetSpeed, aheadCar.speedKmh + 8.0);
+          targetSpeed = Math.min(targetSpeed, aheadCar.speedKmh + 10.0);
         }
       }
     }
 
     this.targetSpeedKmh = targetSpeed;
 
-    // 7. Lateral Target Tracking
-    // Natural racing line + driver personal preference line + overtake lane
+    // 7. Lateral Target Tracking with Multi-Line Chicane Dynamics
     const baseApex = this.getMonzaApexLine(curDist);
     let targetOffset = baseApex + this.profile.lineBias + this.overtakeOffset;
+
+    // Multi-line chicane entry: if closely trailing into a chicane, pick alternate line to avoid train
+    if (aheadCar && minAheadDist < 14.0 && !this.isPassing) {
+      if (aheadCar.lateralOffset <= baseApex) {
+        targetOffset = baseApex + 1.8 + this.profile.lineBias;
+      } else {
+        targetOffset = baseApex - 1.8 + this.profile.lineBias;
+      }
+    }
 
     // Wheel-to-wheel micro-separation (only if side by side within 5m)
     if (aheadCar && minAheadDist < 5.0) {
@@ -217,14 +225,17 @@ class AIDriverController {
     // 1. Rettifilo Main Straight (0 - 950m): 352 km/h
     if (d < 950) return 352.0;
 
-    // 2. Turn 1 Braking Zone (950 - 1100m): 352 -> 78 km/h
+    // 2. Turn 1 Braking Zone (950 - 1100m): 352 -> 92 km/h
     if (d >= 950 && d < 1100) {
       const t = (d - 950) / 150.0;
-      return 352.0 - (t * (352.0 - 78.0));
+      return 352.0 - (t * (352.0 - 92.0));
     }
 
-    // 3. Variante del Rettifilo Chicane (1100 - 1350m): 86 km/h
-    if (d >= 1100 && d < 1350) return 86.0;
+    // 3. Variante del Rettifilo Chicane (1100 - 1350m): 92 -> 130 km/h progressive exit
+    if (d >= 1100 && d < 1350) {
+      const t = (d - 1100) / 250.0;
+      return 92.0 + (t * (130.0 - 92.0));
+    }
 
     // 4. Curva Grande (Biassono) (1350 - 2150m): 150 -> 292 km/h sweeper
     if (d >= 1350 && d < 2150) {

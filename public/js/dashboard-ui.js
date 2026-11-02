@@ -38,7 +38,66 @@ class DashboardUI {
     this.onSelectCarCallback = null;
   }
 
+  setupScenarioButtons() {
+    const btnBrake = document.getElementById('btn-scen-brake');
+    const btnPuncture = document.getElementById('btn-scen-puncture');
+    const btnStrategy = document.getElementById('btn-scen-strategy');
+    const btnDrs = document.getElementById('btn-scen-drs');
+
+    if (btnBrake) btnBrake.onclick = () => {
+      this.engine.injectBrakeOverheat();
+      this.showUrgentToast(this.engine.currentUrgentAlert);
+    };
+    if (btnPuncture) btnPuncture.onclick = () => {
+      this.engine.injectSlowPuncture();
+      this.showUrgentToast(this.engine.currentUrgentAlert);
+    };
+    if (btnStrategy) btnStrategy.onclick = () => {
+      this.engine.triggerUndercutStrategy();
+      this.showUrgentToast(this.engine.currentUrgentAlert);
+    };
+    if (btnDrs) btnDrs.onclick = () => {
+      this.engine.triggerDrsAuthorization();
+      this.showUrgentToast(this.engine.currentUrgentAlert);
+    };
+
+    const btnDismiss = document.getElementById('toast-dismiss');
+    if (btnDismiss) btnDismiss.onclick = () => {
+      const toast = document.getElementById('iot-urgent-toast');
+      if (toast) toast.style.display = 'none';
+    };
+  }
+
+  showUrgentToast(alertObj) {
+    if (!alertObj) return;
+    const toast = document.getElementById('iot-urgent-toast');
+    if (!toast) return;
+
+    const elIcon = document.getElementById('toast-icon');
+    const elTitle = document.getElementById('toast-title');
+    const elDesc = document.getElementById('toast-desc');
+    const elAction = document.getElementById('toast-action');
+
+    if (elIcon) elIcon.textContent = alertObj.icon || '🚨';
+    if (elTitle) elTitle.textContent = alertObj.title || 'CRITICAL IOT ALERT';
+    if (elDesc) elDesc.textContent = alertObj.desc || '';
+    if (elAction) elAction.textContent = alertObj.action || '';
+
+    toast.className = `iot-urgent-toast toast-${(alertObj.type || 'critical').toLowerCase()}`;
+    toast.style.display = 'flex';
+
+    if (window.f1Audio && window.f1Audio.playPitRadioAlert) {
+      window.f1Audio.playPitRadioAlert();
+    }
+
+    if (this._toastTimer) clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      toast.style.display = 'none';
+    }, 8500);
+  }
+
   setupCarSelector(allCars, onSelectCar) {
+    this.setupScenarioButtons();
     this.onSelectCarCallback = onSelectCar;
     const container = document.getElementById('driver-pills-row');
     if (!container) return;
@@ -206,19 +265,23 @@ class DashboardUI {
     const tires = packet.tires;
     const brakes = packet.brakes;
 
-    const setTire = (id, temp, wear, brakeTemp) => {
+    const setTire = (id, temp, wear, brakeTemp, pressure) => {
       const elTemp = document.getElementById(`tire-temp-${id}`);
       const elWear = document.getElementById(`tire-wear-${id}`);
       const elBrake = document.getElementById(`brake-temp-${id}`);
+      const elPress = document.getElementById(`tire-press-${id}`);
       const elBox = document.getElementById(`tire-box-${id}`);
 
       if (elTemp) elTemp.textContent = `${temp}°C`;
       if (elWear) elWear.textContent = `Wear: ${wear}%`;
       if (elBrake) elBrake.textContent = `Disc: ${brakeTemp}°C`;
+      if (elPress && pressure !== undefined) elPress.textContent = `TPMS: ${pressure} bar`;
 
-      // Color coding: Blue <80, Green 85-105, Orange 105-115, Red >115
       if (elBox) {
-        if (temp < 80) {
+        if (pressure !== undefined && pressure < 1.45) {
+          elBox.style.borderColor = '#ff1744';
+          elBox.style.boxShadow = 'inset 0 0 16px rgba(255, 23, 68, 0.6)';
+        } else if (temp < 80) {
           elBox.style.borderColor = '#29b6f6';
           elBox.style.boxShadow = 'inset 0 0 8px rgba(41, 182, 246, 0.2)';
         } else if (temp <= 108) {
@@ -234,10 +297,10 @@ class DashboardUI {
       }
     };
 
-    setTire('fl', tires.fl_temp_c, tires.avg_wear_pct, brakes.fl_temp_c);
-    setTire('fr', tires.fr_temp_c, tires.avg_wear_pct, brakes.fr_temp_c);
-    setTire('rl', tires.rl_temp_c, tires.avg_wear_pct, brakes.rl_temp_c);
-    setTire('rr', tires.rr_temp_c, tires.avg_wear_pct, brakes.rr_temp_c);
+    setTire('fl', tires.fl_temp_c, tires.avg_wear_pct, brakes.fl_temp_c, tires.fl_pressure_bar);
+    setTire('fr', tires.fr_temp_c, tires.avg_wear_pct, brakes.fr_temp_c, tires.fr_pressure_bar);
+    setTire('rl', tires.rl_temp_c, tires.avg_wear_pct, brakes.rl_temp_c, tires.rl_pressure_bar);
+    setTire('rr', tires.rr_temp_c, tires.avg_wear_pct, brakes.rr_temp_c, tires.rr_pressure_bar);
 
     // Engine temperature metric
     const elEngTemp = document.getElementById('metric-engine-temp');
@@ -351,6 +414,28 @@ class DashboardUI {
     if (!recEl) return;
 
     let items = [];
+
+    // Diagnostic Rule: TPMS Pressure Anomaly
+    if (packet.tires && (packet.tires.fl_pressure_bar < 1.50 || packet.tires.fr_pressure_bar < 1.50)) {
+      const pVal = Math.min(packet.tires.fl_pressure_bar, packet.tires.fr_pressure_bar);
+      items.push({
+        title: "CRITICAL: TPMS Micro-Leak / Slow Puncture",
+        sub: "Measured Pressure: " + pVal + " bar | Nominal: 1.65 bar",
+        rule: "Rule: dP/dt < -0.05 bar/s or P < 1.50 bar. Structural delamination risk at 330 km/h.",
+        action: "ACTION: Mandatory BOX THIS LAP! Prepare fresh Hard compound."
+      });
+    }
+
+    // Diagnostic Rule: Brake Overheat Runaway
+    if (packet.brakes && (packet.brakes.fl_temp_c > 950 || packet.brakes.fr_temp_c > 950)) {
+      const bVal = Math.max(packet.brakes.fl_temp_c, packet.brakes.fr_temp_c);
+      items.push({
+        title: "CRITICAL: Front Brake Rotor Overheat (" + bVal + "°C)",
+        sub: "Front Rotor: " + bVal + "°C | Structural Limit: 950°C",
+        rule: "Rule: T_rotor >= 950°C. Hydraulic fluid boiling threshold reached.",
+        action: "ACTION: Lift-and-coast 100m into Turn 1 and Roggia. Bias +2% Rear."
+      });
+    }
 
     // Diagnostic Rule 1: Engine Thermal Load
     if (packet.engine_temp_c > 114) {

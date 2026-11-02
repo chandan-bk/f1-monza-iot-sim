@@ -93,6 +93,18 @@
       <div id="sim-viewport-wrapper" class="view-panel view-full">
         <div id="canvas-container"></div>
 
+      <!-- Floating IoT Race Engineer Urgent Banner -->
+      <div id="iot-urgent-toast" class="iot-urgent-toast" style="display:none;">
+        <div class="toast-icon" id="toast-icon">🚨</div>
+        <div class="toast-body">
+          <div class="toast-title" id="toast-title">CRITICAL ALERT</div>
+          <div class="toast-desc" id="toast-desc">Event details</div>
+          <div class="toast-action" id="toast-action">RECOMMENDED ACTION: ...</div>
+        </div>
+        <button class="toast-dismiss" id="toast-dismiss">✕</button>
+      </div>
+
+
         <!-- Cockpit & Broadcast HUD Overlay (Matching reference Images 1 & 2) -->
         <div class="cockpit-hud-overlay">
           
@@ -202,6 +214,21 @@
           </div>
         </div>
 
+        
+        <!-- Interactive IoT Live Incident & Strategic Scenario Console -->
+        <div class="iot-scenarios-bar" id="iot-scenarios-bar">
+          <div class="iot-bar-heading">
+            <span class="iot-badge">⚡ IOT INCIDENT & STRATEGY SIMULATOR</span>
+            <span class="iot-sub">Demonstrate real-time edge alerts, safety intervention & undercut strategy to examiners:</span>
+          </div>
+          <div class="iot-buttons-grid">
+            <button class="scenario-btn scen-brake" id="btn-scen-brake" title="Simulate 1,020°C Rotor Overheat into T1">🚨 Brake Thermal Runaway</button>
+            <button class="scenario-btn scen-puncture" id="btn-scen-puncture" title="Simulate Micro-Leak TPMS Alarm (-0.27 bar)">⚠️ Slow Puncture (TPMS)</button>
+            <button class="scenario-btn scen-strategy" id="btn-scen-strategy" title="Simulate Tire Cliff & Undercut Window">⏱️ Undercut Strategy Alert</button>
+            <button class="scenario-btn scen-drs" id="btn-scen-drs" title="Demonstrate Gap Proximity & DRS Wing Telemetry">⚡ DRS Authorization</button>
+          </div>
+        </div>
+
         <!-- Live Car Telemetry Channel Selector (Autonomous & Multi-Car Monitoring) -->
         <div class="telemetry-car-channel-bar">
           <div class="channel-title">
@@ -291,24 +318,28 @@
                 <div class="tire-temp-reading" id="tire-temp-fl">88.0°C</div>
                 <div class="tire-wear-sub" id="tire-wear-fl">Wear: 0.0%</div>
                 <div class="brake-disc-sub" id="brake-temp-fl">Disc: 320°C</div>
+                <div class="tpms-sub" id="tire-press-fl">TPMS: 1.65 bar</div>
               </div>
               <div class="tire-matrix-box" id="tire-box-fr">
                 <div class="tire-pos-label">FRONT RIGHT (FR)</div>
                 <div class="tire-temp-reading" id="tire-temp-fr">88.0°C</div>
                 <div class="tire-wear-sub" id="tire-wear-fr">Wear: 0.0%</div>
                 <div class="brake-disc-sub" id="brake-temp-fr">Disc: 320°C</div>
+                <div class="tpms-sub" id="tire-press-fr">TPMS: 1.65 bar</div>
               </div>
               <div class="tire-matrix-box" id="tire-box-rl">
                 <div class="tire-pos-label">REAR LEFT (RL)</div>
                 <div class="tire-temp-reading" id="tire-temp-rl">92.0°C</div>
                 <div class="tire-wear-sub" id="tire-wear-rl">Wear: 0.0%</div>
                 <div class="brake-disc-sub" id="brake-temp-rl">Disc: 280°C</div>
+                <div class="tpms-sub" id="tire-press-rl">TPMS: 1.65 bar</div>
               </div>
               <div class="tire-matrix-box" id="tire-box-rr">
                 <div class="tire-pos-label">REAR RIGHT (RR)</div>
                 <div class="tire-temp-reading" id="tire-temp-rr">92.0°C</div>
                 <div class="tire-wear-sub" id="tire-wear-rr">Wear: 0.0%</div>
                 <div class="brake-disc-sub" id="brake-temp-rr">Disc: 280°C</div>
+                <div class="tpms-sub" id="tire-press-rr">TPMS: 1.65 bar</div>
               </div>
             </div>
           </div>

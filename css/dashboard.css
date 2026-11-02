@@ -498,3 +498,200 @@
   margin-left: 4px;
   vertical-align: middle;
 }
+
+
+/* ------------------------------------------------------------------------- */
+/* IOT SCENARIOS CONSOLE & URGENT BANNER                                     */
+/* ------------------------------------------------------------------------- */
+.iot-scenarios-bar {
+  background: linear-gradient(135deg, #0d1527, #131f38);
+  border: 1px solid #1e293b;
+  border-left: 4px solid #00e5ff;
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.iot-bar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.iot-badge {
+  font-family: var(--font-f1, sans-serif);
+  font-size: 11px;
+  font-weight: 800;
+  color: #00e5ff;
+  letter-spacing: 0.8px;
+}
+
+.iot-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.iot-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.scenario-btn {
+  background: #192338;
+  border: 1px solid #334155;
+  color: #f1f5f9;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.scenario-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.2);
+}
+
+.scen-brake {
+  border-color: rgba(255, 23, 68, 0.5);
+  color: #ff8a80;
+}
+.scen-brake:hover {
+  background: #ff1744;
+  border-color: #ff1744;
+  color: #ffffff;
+}
+
+.scen-puncture {
+  border-color: rgba(255, 145, 0, 0.5);
+  color: #ffd180;
+}
+.scen-puncture:hover {
+  background: #ff9100;
+  border-color: #ff9100;
+  color: #000000;
+}
+
+.scen-strategy {
+  border-color: rgba(0, 230, 118, 0.5);
+  color: #b9f6ca;
+}
+.scen-strategy:hover {
+  background: #00e676;
+  border-color: #00e676;
+  color: #000000;
+}
+
+.scen-drs {
+  border-color: rgba(0, 229, 255, 0.5);
+  color: #84ffff;
+}
+.scen-drs:hover {
+  background: #00e5ff;
+  border-color: #00e5ff;
+  color: #000000;
+}
+
+/* Floating IoT Urgent Toast Banner */
+.iot-urgent-toast {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  min-width: 440px;
+  max-width: 90vw;
+  background: rgba(13, 20, 36, 0.96);
+  backdrop-filter: blur(10px);
+  border: 2px solid #ff1744;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 24px rgba(255, 23, 68, 0.45);
+  border-radius: 8px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  animation: toastSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toastSlideDown {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.toast-critical {
+  border-color: #ff1744;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 24px rgba(255, 23, 68, 0.5);
+}
+
+.toast-success {
+  border-color: #00e676;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 24px rgba(0, 230, 118, 0.4);
+}
+
+.toast-info {
+  border-color: #00e5ff;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 24px rgba(0, 229, 255, 0.4);
+}
+
+.toast-icon {
+  font-size: 28px;
+}
+
+.toast-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.toast-title {
+  font-family: var(--font-f1, sans-serif);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+}
+
+.toast-desc {
+  font-size: 11.5px;
+  color: #cbd5e1;
+}
+
+.toast-action {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffd600;
+  font-family: var(--font-mono, monospace);
+  margin-top: 2px;
+}
+
+.toast-dismiss {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.toast-dismiss:hover {
+  color: #ffffff;
+}
+
+.tpms-sub {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: #38bdf8;
+  margin-top: 2px;
+}
