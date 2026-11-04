@@ -375,6 +375,14 @@ class F1SimApp {
     if (btnReturnMenu) btnReturnMenu.onclick = () => this.showScreen('screen-menu');
     if (btnQuickCam) btnQuickCam.onclick = () => this.toggleCamera();
 
+    // Direct Camera Perspective Selectors (6 Cameras)
+    document.querySelectorAll('.cam-sel-btn').forEach(btn => {
+      btn.onclick = () => {
+        const cam = btn.getAttribute('data-camera');
+        if (cam) this.setCameraMode(cam);
+      };
+    });
+
     if (btnLayoutDriver) btnLayoutDriver.onclick = () => this.setViewLayout('DRIVER_ONLY');
     if (btnLayoutSplit) btnLayoutSplit.onclick = () => this.setViewLayout('SPLIT');
     if (btnLayoutEngineer) btnLayoutEngineer.onclick = () => this.setViewLayout('ENGINEER_ONLY');

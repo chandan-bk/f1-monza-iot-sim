@@ -1,107 +1,154 @@
-# Formula 1 Vehicle Physics & Mathematical Dynamics Model
+# Formula 1 Vehicle Dynamics & Multiphysics Modeling (System 2.0)
 
-## 1. Coordinate System & Nomenclature
+## 1. Mathematical Framework & Kinematics Core
 
-The simulation uses an ISO 8855 standard right-handed Cartesian vehicle dynamic coordinate frame:
-- **$X$-Axis**: Longitudinal forward direction ($+X$ = forward acceleration).
-- **$Y$-Axis**: Lateral direction ($+Y$ = vehicle right, cornering forces).
-- **$Z$-Axis**: Vertical direction ($+Z$ = upward normal load).
+The vehicle simulation implements a curvilinear coordinate system along the 5,793m Autodromo Nazionale Monza spline, tracking longitudinal distance $s(t)$, lateral displacement $n(t)$, and vehicle heading $\psi(t)$.
 
-| Symbol | Parameter Description | Formula 1 Value / Unit |
-|---|---|---|
-| $m$ | Total vehicle mass (car + driver + fluids) | $798 \text{ kg}$ (FIA Regulation) |
-| $v$ | Vehicle forward speed | $\text{m/s}$ (displayed in $\text{km/h}$) |
-| $\rho$ | Atmospheric air density at sea level | $1.225 \text{ kg/m}^3$ |
-| $A$ | Frontal aerodynamic projected area | $1.45 \text{ m}^2$ |
-| $C_d$ | Aerodynamic drag coefficient | $0.78$ (Standard) / $0.62$ (DRS Active) |
-| $C_l$ | Aerodynamic downforce coefficient | $3.40$ |
-| $L$ | Wheelbase | $3.60 \text{ m}$ ($3600 \text{ mm}$) |
-| $T$ | Track width | $2.00 \text{ m}$ ($2000 \text{ mm}$) |
-| $r_w$ | Effective rolling tire radius | $0.36 \text{ m}$ ($360 \text{ mm}$) |
-| $\mu$ | Peak tire-asphalt friction coefficient | $1.72$ (Pirelli Soft Slick) |
+### 1.1 Longitudinal Force Balance
+The net longitudinal acceleration of each vehicle is governed by Newton's Second Law:
 
----
-
-## 2. Longitudinal Dynamics & Powertrain
-
-### 2.1 Aerodynamic Forces
-Modern ground-effect Formula 1 cars generate extreme downforce and drag that scale quadratically with velocity ($v^2$):
-
-$$\text{Aerodynamic Drag Force: } F_{\text{drag}} = \frac{1}{2} \rho \cdot C_d \cdot A \cdot v^2$$
-
-$$\text{Aerodynamic Downforce: } F_{\text{down}} = \frac{1}{2} \rho \cdot C_l \cdot A \cdot v^2$$
-
-At $300 \text{ km/h}$ ($83.33 \text{ m/s}$):
-- $F_{\text{drag}} \approx \frac{1}{2} (1.225)(0.78)(1.45)(83.33)^2 \approx 4,810 \text{ N}$
-- $F_{\text{down}} \approx \frac{1}{2} (1.225)(3.40)(1.45)(83.33)^2 \approx 20,967 \text{ N}$ ($\approx 2,137 \text{ kg}$ of vertical downforce, nearly $2.7\times$ the vehicle weight!).
-
-### 2.2 Tractive Engine Force & Gearbox Ratios
-The power unit consists of a 1.6-liter turbocharged 90° V6 internal combustion engine (ICE) coupled with an MGU-K electric motor delivering up to $1,020 \text{ bhp}$ total power.
-
-Tractive wheel force $F_{\text{drive}}$ transmitted through the 8-speed sequential dog-ring gearbox is:
-
-$$F_{\text{drive}} = \frac{\left( T_{\text{ICE}}(\text{RPM}) + T_{\text{MGU-K}} \right) \cdot \gamma_g \cdot \gamma_f \cdot \eta_{\text{drivetrain}}}{r_w}$$
+$$m \frac{dv}{dt} = F_{\text{traction}} - F_{\text{braking}} - F_{\text{aero\_drag}} - F_{\text{rolling\_resistance}}$$
 
 Where:
-- $\gamma_g \in [3.20, 2.42, 1.90, 1.54, 1.28, 1.08, 0.92, 0.80]$ is the gear ratio for gears $1$ through $8$.
-- $\gamma_f = 4.15$ is the final drive differential ratio.
-- $\eta_{\text{drivetrain}} = 0.96$ is mechanical transmission efficiency.
-- $T_{\text{MGU-K}} = 120 \text{ Nm}$ (when ERS State of Charge $> 5\%$ and throttle $> 80\%$).
-
-### 2.3 Braking Dynamics
-Deceleration under braking combines carbon-carbon friction brakes and MGU-K regenerative kinetic harvesting:
-
-$$F_{\text{brake}} = P_{\text{pedal}} \cdot \mu_{\text{carbon}} \cdot F_{\text{clamping}}$$
-
-Because maximum deceleration is constrained by tire adhesion, downforce allows extreme braking deceleration:
-
-$$a_{\text{max}} = \frac{\mu \cdot \left( m \cdot g + F_{\text{down}} \right)}{m} = \mu \left( g + \frac{F_{\text{down}}}{m} \right)$$
-
-At $320 \text{ km/h}$, available braking deceleration exceeds **$5.1 \text{ G}$** ($\approx 50 \text{ m/s}^2$). As velocity decays, downforce drops with $v^2$, requiring the driver to bleed off brake pressure (trail-braking) to avoid wheel lockup.
+- $m = 798\text{ kg}$ (FIA minimum vehicle + driver mass)
+- $F_{\text{traction}} = \min\left(\frac{\tau_{\text{engine}} \cdot r_{\text{gear}} \cdot r_{\text{final}}}{R_{\text{tire}}}, \mu_{\text{long}} \cdot F_{\text{normal}}\right)$
+- $F_{\text{braking}} = \text{brake\_input} \cdot F_{\text{brake\_max}} \cdot \mu_{\text{pad\_friction}}(T_{\text{rotor}})$
+- $F_{\text{aero\_drag}} = \frac{1}{2} \rho C_d A v^2$
+- $F_{\text{rolling\_resistance}} = C_{\text{rr}} \cdot m \cdot g$
 
 ---
 
-## 3. Lateral Dynamics & Cornering Model
+## 2. Aerodynamics & Drag Reduction System (DRS)
 
-Cornering forces are modeled using a Pacejka-style friction saturation envelope:
+### 2.1 Ground-Effect Aerodynamic Downforce
+Modern Formula 1 single-seaters utilize venturi tunnels and aerodynamic wings to generate downforce proportional to the square of velocity:
 
-$$F_y = \mu_{\text{effective}} \cdot F_z \cdot \sin\left( C \cdot \arctan(B \cdot \alpha) \right)$$
+$$F_{\text{downforce}} = \frac{1}{2} \rho C_l A v^2$$
+
+- Air density: $\rho = 1.205\text{ kg/m}^3$ (at Monza ambient $24^\circ\text{C}$)
+- Frontal area: $A = 1.45\text{ m}^2$
+- Lift coefficient: $C_l = 3.40$ (high-speed cornering trim)
+
+### 2.2 DRS Wing Actuation
+When DRS is deployed in the two designated Monza zones (Rettifilo Straight & Serraglio Straight):
+- Drag coefficient drops from $C_d = 0.68$ down to $C_d = 0.52$ (-23.5% aerodynamic drag).
+- Terminal velocity increases from $335\text{ km/h}$ to $355+\text{ km/h}$.
+
+---
+
+## 3. Powertrain & Hybrid Energy Recovery (ERS)
+
+### 3.1 1.6L V6 Turbocharged Hybrid ICE
+Engine torque is computed through bilinear interpolation across an authentic torque curve (4,000–15,000 RPM), delivering a peak of 780 BHP from the internal combustion unit plus 160 BHP from the MGU-K electric motor:
+
+$$\tau_{\text{total}} = \tau_{\text{ICE}}(\text{RPM}) \cdot \text{throttle} + \tau_{\text{MGU-K}}(\text{SoC})$$
+
+### 3.2 8-Speed Sequential Monza Gearbox
+Gear ratios are calibrated specifically for Monza's low-downforce, high-speed profile:
+- 1st: 3.18, 2nd: 2.45, 3rd: 1.95, 4th: 1.58, 5th: 1.32, 6th: 1.12, 7th: 0.96, 8th: 0.84, Final Drive: 3.42.
+
+---
+
+## 4. Multiphysics Thermodynamic Models
+
+### 4.1 ICE Coolant Temperature & Radiator Blockage
+Engine heat flux is modeled as a balance between combustion heat generation and aerodynamic forced convective heat dissipation:
+
+$$\frac{dT_{\text{coolant}}}{dt} = \frac{\dot{Q}_{\text{combustion}} - \dot{Q}_{\text{radiator}}}{C_{\text{thermal\_engine}}}$$
 
 Where:
-- $F_z = m \cdot g \cdot \beta_{\text{axle}} + \frac{1}{2} F_{\text{down}}$ is the dynamic axle normal load.
-- $\alpha$ is the tire slip angle: $\alpha \approx \delta - \frac{v_y + a \cdot \omega_z}{v_x}$.
-- Surface friction coefficient $\mu_{\text{effective}}$ modulates based on surface type:
-  - **Dry Racing Line Asphalt**: $\mu = 1.72$
-  - **Kerb Ribs**: $\mu = 1.15$ (with high-frequency vertical vibration)
-  - **Off-Track Grass Runoff**: $\mu = 0.55$ (significant grip drop)
+$$\dot{Q}_{\text{combustion}} = k_{\text{combustion}} \cdot \left(\frac{\text{RPM}}{15000}\right) \cdot \text{throttle}$$
+
+$$\dot{Q}_{\text{radiator}} = h_{\text{rad}} \cdot A_{\text{rad}} \cdot (1 - \text{BlockagePct}) \cdot v_{\text{car}} \cdot (T_{\text{coolant}} - T_{\text{ambient}})$$
+
+Under normal clean-air running, $T_{\text{coolant}}$ stabilizes at $98^\circ\text{C} - 102^\circ\text{C}$.  
+When **Scenario A (Radiator Blockage)** is injected at 85%, $\dot{Q}_{\text{radiator}}$ is throttled by 85%, causing $T_{\text{coolant}}$ to rapidly climb past $114.0^\circ\text{C}$.
+
+### 4.2 Brembo Carbon-Carbon Rotor Dissipation
+Brake kinetic energy converted into thermal flux during severe decelerations (such as Turn 1 braking from $352\text{ km/h}$ to $78\text{ km/h}$ in 2.6 seconds):
+
+$$\dot{Q}_{\text{braking}} = F_{\text{braking}} \cdot v_{\text{car}}$$
+
+$$\frac{dT_{\text{rotor}}}{dt} = \frac{\dot{Q}_{\text{braking}} - h_{\text{duct}} \cdot (1 - \text{DuctBlockage}) \cdot v_{\text{car}} \cdot (T_{\text{rotor}} - T_{\text{ambient}})}{m_{\text{rotor}} \cdot c_{\text{carbon}}}$$
+
+Rotor surface temperature peaks at $950^\circ\text{C} - 1,020^\circ\text{C}$ on corner entry, radiating a realistic red-orange emissive glow on the 3D car model.
+
+### 4.3 Pirelli P-Zero Tire Thermodynamics & Degradation
+Tire bulk temperature is driven by frictional road contact slip, carcass deflection, and heat radiation:
+
+$$\Delta T_{\text{tire}} = \left(k_{\text{friction}} \cdot |v_{\text{slip}}| + k_{\text{cornering}} \cdot |F_{\text{lateral}}| - k_{\text{cooling}} \cdot v_{\text{car}} \cdot (T_{\text{tire}} - T_{\text{ambient}})\right) \Delta t$$
+
+Tire wear accumulates monotonically based on temperature and frictional energy:
+
+$$\Delta \text{Wear} = k_{\text{wear}} \cdot \left(\frac{T_{\text{tire}}}{100}\right)^{1.8} \cdot |v_{\text{slip}}| \cdot \Delta t$$
 
 ---
 
-## 4. Subsystem Thermal & Degradation Models
+## 5. Mechanical Vibration & TPMS Puncture Physics
 
-### 4.1 Engine Coolant Temperature Dynamics
-Engine thermal equilibrium reflects combustion heat release minus radiator convective heat dissipation:
+### 5.1 Bulkhead Accelerometer Vibration Model ($V_{\text{rms}}$)
+Mechanical vibration measured by piezoelectric sensor `VIB-01` incorporates four additive components:
 
-$$\frac{d T_{\text{ice}}}{dt} = \frac{\dot{Q}_{\text{combustion}} - \dot{Q}_{\text{radiator}}}{C_{\text{thermal}}}$$
+$$V_{\text{rms}} = V_{\text{baseline}} + \left(\frac{v_{\text{car}}}{350}\right) \cdot V_{\text{speed}} + V_{\text{kerb\_impact}} + V_{\text{anomaly}}$$
 
-$$\dot{Q}_{\text{combustion}} = \left( 0.70 \cdot P_{\text{throttle}} + 0.30 \cdot \frac{\text{RPM}}{\text{RPM}_{\text{max}}} \right) \cdot \dot{q}_{\text{fuel}}$$
+- $V_{\text{baseline}} = 0.25\text{G RMS}$ (chassis baseline)
+- $V_{\text{speed}} = 0.45\text{G RMS}$ (aerodynamic buffeting at 350 km/h)
+- $V_{\text{kerb\_impact}} = 1.40\text{G RMS}$ (high red-and-white kerb strikes at Variante Ascari)
+- $V_{\text{anomaly}} = 2.45\text{G RMS}$ (injected in Scenario D, representing front upright damper mechanical looseness)
 
-$$\dot{Q}_{\text{radiator}} = (T_{\text{ice}} - T_{\text{ambient}}) \cdot \left( h_0 + h_v \cdot v \right)$$
+### 5.2 Pneumatic TPMS Pressure Leak Decay
+Under normal running, tire pressure expands with temperature:
 
-If $T_{\text{ice}} > 106^\circ\text{C}$, the rule-based alert engine triggers a thermal warning; at $>114^\circ\text{C}$, critical alerts flag immediate engine protection actions (lift-and-coast).
+$$P_{\text{tire}}(t) = P_{\text{cold}} \cdot \left(\frac{T_{\text{tire}}(t) + 273.15}{293.15}\right)$$
 
-### 4.2 Carbon-Carbon Brake Rotor Thermal Model
-Rotors convert kinetic energy into heat during heavy deceleration:
+When **Scenario B (Slow Puncture)** is injected on wheel $w \in \{\text{FL, FR, RL, RR}\}$:
 
-$$\Delta Q_{\text{brake}} = m \cdot |a_{\text{brake}}| \cdot v \cdot \Delta t \cdot \beta_{\text{front/rear}}$$
+$$P_{\text{tire}}(t) = P_{\text{tire}}(t - \Delta t) - (\text{leakRate}_w \cdot \Delta t)$$
 
-Rotor cooling occurs via forced convection through carbon fiber aerodynamic brake ducts:
+With $\text{leakRate} = 0.55\text{ psi/s}$, the tire pressure collapses below $17.5\text{ psi}$ within 12 seconds, increasing rolling resistance by +40% and decreasing cornering stiffness by -35%.
 
-$$\frac{d T_{\text{disc}}}{dt} = \frac{\dot{Q}_{\text{brake}}}{m_{\text{disc}} \cdot c_p} - k_{\text{duct}} \cdot (T_{\text{disc}} - T_{\text{ambient}}) \cdot v$$
+---
 
-### 4.3 4-Wheel Individual Tire Thermal Model
-Tire bulk temperature is driven by frictional hysteresis and sliding work:
+## 6. Closed-Loop Engineering Interventions
 
-$$\dot{Q}_{\text{tire}} = \left( |F_y \cdot v_{\text{lateral}}| + |F_x \cdot v_{\text{slip}}| \right) \cdot \kappa_{\text{thermal}}$$
+When race engineering decisions are executed in Module 06, they directly modify physics variables in `VehiclePhysics`:
 
-Tires operate in an optimal window of **$85^\circ\text{C} - 105^\circ\text{C}$**. Exceeding $112^\circ\text{C}$ induces thermal graining and blistering, reducing friction by $18-22\%$.
+```javascript
+applyEngineeringAction(actionType, param) {
+  switch (actionType) {
+    case 'COOLING_MODE':
+      // Engage Engine Map 3: reduces fuel flow and triggers 90m lift-and-coast
+      this.coolingModeActive = true;
+      this.radiatorBlockagePct = Math.max(0, this.radiatorBlockagePct - 50);
+      break;
+
+    case 'PIT_STOP':
+      // Replace tires, zero wear, restore TPMS to 21.0 psi
+      Object.keys(this.tireWear).forEach(w => this.tireWear[w] = 0.0);
+      Object.keys(this.tirePressure).forEach(w => this.tirePressure[w] = 21.0);
+      Object.keys(this.tireLeakRate).forEach(w => this.tireLeakRate[w] = 0.0);
+      break;
+
+    case 'BRAKE_BIAS_REAR':
+      // Shift brake balance rearward to relieve overheated front carbon rotors
+      this.brakeBiasRearward += (param || 0.04);
+      this.brakeDuctBlockagePct = 0;
+      break;
+
+    case 'RECALIBRATE_DAMPER':
+      // Reset active suspension dampers to resolve structural vibration
+      this.vibrationAnomaly = false;
+      break;
+
+    case 'RESET_ALL':
+      // Restore all subsystems to factory baseline
+      this.radiatorBlockagePct = 0;
+      this.brakeDuctBlockagePct = 0;
+      this.vibrationAnomaly = false;
+      this.coolingModeActive = false;
+      this.brakeBiasRearward = 0.0;
+      Object.keys(this.tireLeakRate).forEach(w => this.tireLeakRate[w] = 0.0);
+      break;
+  }
+}
+```

@@ -1,13 +1,14 @@
 /**
  * ============================================================================
  * Application of IoT in Motorsport: Real-Time Race Car Telemetry Monitoring
- * Telemetry Server & WebSocket Gateway (Node.js)
+ * Telemetry Server & WebSocket Gateway (Node.js) 2.0
  * ============================================================================
  * Handles:
  *  1. Static web asset serving (Driver 3D Simulator & Pitwall Engineering Dashboard)
  *  2. Real-time bi-directional WebSocket telemetry stream (/telemetry-stream)
  *  3. REST endpoint for external telemetry ingest (POST /api/telemetry/ingest)
  *  4. Multi-client broadcast (allows driving on PC while engineer monitors on tablet)
+ *  5. Network heartbeat ping/pong, RTT latency monitoring & telemetry packet ring buffer
  * ============================================================================
  */
 
@@ -59,7 +60,7 @@ let server;
 
 if (express) {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
   app.use(express.static(PUBLIC_DIR));
 
   // REST ingest endpoint for telemetry packets
@@ -72,6 +73,16 @@ if (express) {
   // Query latest telemetry
   app.get('/api/telemetry/latest', (req, res) => {
     res.json(latestTelemetryPacket || { status: 'NO_DATA' });
+  });
+
+  // Query server network metrics
+  app.get('/api/network/stats', (req, res) => {
+    res.json({
+      status: 'ONLINE',
+      connected_clients: connectedClients.size,
+      buffer_size: telemetryHistoryBuffer.length,
+      server_time: Date.now()
+    });
   });
 
   server = http.createServer(app);
@@ -101,6 +112,17 @@ if (express) {
     if (pathname === '/api/telemetry/latest') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(latestTelemetryPacket || { status: 'NO_DATA' }));
+      return;
+    }
+
+    if (pathname === '/api/network/stats') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'ONLINE',
+        connected_clients: connectedClients.size,
+        buffer_size: telemetryHistoryBuffer.length,
+        server_time: Date.now()
+      }));
       return;
     }
 
@@ -141,10 +163,13 @@ if (WebSocket) {
     connectedClients.add(ws);
     console.log(`[WS] Client connected. Total dashboard clients: ${connectedClients.size}`);
 
-    // Send latest known telemetry upon connection
-    if (latestTelemetryPacket) {
-      ws.send(JSON.stringify({ type: 'TELEMETRY_SYNC', data: latestTelemetryPacket }));
-    }
+    // Send latest known telemetry & client count upon connection
+    ws.send(JSON.stringify({
+      type: 'SERVER_HELLO',
+      connected_clients: connectedClients.size,
+      server_timestamp: Date.now(),
+      data: latestTelemetryPacket
+    }));
 
     ws.on('message', (message) => {
       try {
@@ -152,7 +177,12 @@ if (WebSocket) {
         if (parsed.type === 'TELEMETRY_INGEST') {
           handleIncomingPacket(parsed.data, parsed.source || 'client_ws');
         } else if (parsed.type === 'PING') {
-          ws.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
+          ws.send(JSON.stringify({
+            type: 'PONG',
+            client_timestamp: parsed.timestamp || Date.now(),
+            server_timestamp: Date.now(),
+            client_count: connectedClients.size
+          }));
         }
       } catch (err) {
         console.error('[WS] Error parsing message:', err.message);
@@ -179,7 +209,13 @@ function handleIncomingPacket(packet, source) {
   }
 
   // Broadcast to all active browser dashboards
-  const broadcastMsg = JSON.stringify({ type: 'TELEMETRY_UPDATE', data: packet });
+  const broadcastMsg = JSON.stringify({
+    type: 'TELEMETRY_UPDATE',
+    data: packet,
+    client_count: connectedClients.size,
+    server_timestamp: Date.now()
+  });
+
   for (const client of connectedClients) {
     if (client.readyState === 1) { // OPEN
       client.send(broadcastMsg);
@@ -189,11 +225,12 @@ function handleIncomingPacket(packet, source) {
 
 server.listen(PORT, () => {
   console.log(`\n================================================================`);
-  console.log(`  FORMULA 1 IoT TELEMETRY & RACE SIMULATOR`);
-  console.log(`  Capstone Project: "Application of IoT in Motorsport"`);
+  console.log(`  FORMULA 1 IoT TELEMETRY & INTELLIGENT MONITORING SYSTEM 2.0`);
+  console.log(`  Academic Capstone: Application of IoT in Motorsport`);
   console.log(`================================================================`);
   console.log(`  ✓ Web Application:   http://localhost:${PORT}`);
   console.log(`  ✓ WebSocket Gateway: ws://localhost:${PORT}/telemetry-stream`);
   console.log(`  ✓ REST Ingest API:   http://localhost:${PORT}/api/telemetry/ingest`);
+  console.log(`  ✓ Network Stats:     http://localhost:${PORT}/api/network/stats`);
   console.log(`================================================================\n`);
 });

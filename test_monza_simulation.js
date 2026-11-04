@@ -39,16 +39,21 @@ const mockDOM = {
     innerWidth: 1920,
     innerHeight: 1080,
     devicePixelRatio: 1,
-    location: { protocol: 'http:', host: 'localhost:3000' }
+    location: { protocol: 'http:', host: 'localhost:3000' },
+    setInterval: (cb) => 1,
+    clearInterval: () => {}
   },
   performance: { now: () => 1000 },
   requestAnimationFrame: () => 1,
-  setTimeout: (cb) => { cb(); return 1; }
+  setTimeout: (cb) => { cb(); return 1; },
+  setInterval: (cb) => 1,
+  clearInterval: () => {}
 };
 
-// Load config, three, audio, etc.
+// Load config, sensor-registry, three, audio, etc.
 const threeCode = fs.readFileSync('public/js/three.min.js', 'utf8');
 const configCode = fs.readFileSync('public/js/config.js', 'utf8');
+const sensorRegCode = fs.readFileSync('public/js/sensor-registry.js', 'utf8');
 const trackCode = fs.readFileSync('public/js/track.js', 'utf8');
 const physicsCode = fs.readFileSync('public/js/physics.js', 'utf8');
 const aiCode = fs.readFileSync('public/js/ai-driver.js', 'utf8');
@@ -71,6 +76,7 @@ const context = vm.createContext(sandbox);
 // Execute in sequence
 vm.runInContext(threeCode, context);
 vm.runInContext(configCode, context);
+vm.runInContext(sensorRegCode, context);
 vm.runInContext(trackCode, context);
 vm.runInContext(physicsCode, context);
 vm.runInContext(aiCode, context);
@@ -93,7 +99,7 @@ context.THREE.WebGLRenderer = function() {
 
 vm.runInContext(mainCode, context);
 
-console.log('✓ All 12 Monza modules loaded into context without error.');
+console.log('✓ All 13 Monza modules loaded into context without error.');
 
 // Instantiate F1SimApp
 const app = vm.runInContext('new F1SimApp()', context);

@@ -1,118 +1,168 @@
-# College Faculty Demonstration & Viva Presentation Script
+# Formula 1 IoT Telemetry & Race Monitoring System 2.0
+## Comprehensive College Faculty Demonstration & Viva Presentation Script
 
-**Project Title:** Application of IoT in Motorsport: Real-Time Race Car Telemetry Monitoring and Performance Analysis  
-**Circuit:** Autodromo Nazionale Monza (5,793m Grand Prix Layout)  
-**Grid:** 6-Car Live Field (Scuderia Ferrari HP, Oracle Red Bull Racing, Mercedes-AMG, McLaren, Aston Martin Aramco, BWT Alpine)  
-**Engineering Domains:** Internet of Things (IoT), Real-Time Telemetry Streaming, Vehicle Dynamics Simulation, Edge Diagnostics
+**Project Title:** Application of IoT in Motorsport: End-to-End Real-Time Race Car Telemetry Pipeline, Virtual Sensor Network, Edge Diagnostics, and Closed-Loop Race Engineering  
+**Circuit:** Autodromo Nazionale Monza (5,793m Grand Prix Layout — "The Temple of Speed")  
+**Grid:** 6-Car Competitive Grid (Ferrari, Red Bull, Mercedes, McLaren, Aston Martin, Alpine)  
+**Engineering Domains:** Internet of Things (IoT), Real-Time Telemetry Streaming, Edge Computing, Sensor Networks, Multiphysics Modeling, Closed-Loop Control Systems
 
 ---
 
-## 1. Quick Setup & Demonstration Launch (1 Minute)
+## 1. Quick Setup & Launch Options (1 Minute)
 
-1. Open PowerShell or Terminal in the project directory:
+### Option A: Standard Single-Screen Mode
+1. Open PowerShell or Terminal in the project root:
    ```powershell
-   node server.js
+   npm start
    ```
-2. Open your web browser (Google Chrome, Microsoft Edge, Firefox) to:
+2. Navigate your web browser to:
    ```text
-   http://localhost:3000
+   http://localhost:8080
    ```
-   *(Or navigate directly to the online GitHub Pages deployment: `https://chandan-bk.github.io/f1-monza-iot-sim/`)*
-3. The application loads directly into **100% Fullscreen Cockpit Mode** with the official F1 TV Broadcast Timing Tower and live telemetry.
+3. The platform opens into the Capstone Briefing Screen with one-click access to **Autonomous AI Race (IoT Pitwall Monitor)**.
+
+### Option B: Dual-Device / Multi-Monitor Presentation Mode (Recommended for Examiners)
+1. On **Screen 1 (Projector or Laptop Display)**:
+   ```text
+   http://localhost:8080/?mode=sim
+   ```
+   *(Launches directly into the 3D WebGL Driver POV Simulation with 6 cameras)*
+2. On **Screen 2 (Second Monitor, Tablet, or Examiner Laptop)**:
+   ```text
+   http://localhost:8080/?mode=dashboard
+   ```
+   *(Launches directly into the Pitwall Race Engineer Dashboard)*
+3. Both devices synchronize over the local WebSocket server at 20 Hz!
 
 ---
 
 ## 2. Step-by-Step Viva Presentation Walkthrough
 
-### Step 1: Project Introduction & High-Level Objective (1 Minute)
-- **Action:** Point to the main simulation view and timing tower.
-- **Talking Points for Faculty:**
-  > *"Good morning, respected professors. Today we present our engineering capstone project: **'Application of IoT in Motorsport: Real-Time Race Car Telemetry Monitoring and Performance Analysis.'**  
-  > In modern motorsport—especially Formula 1—the car is an edge IoT device on wheels, collecting gigabytes of data every second. Our project demonstrates how real-world automotive IoT systems acquire, wirelessly transport, ingest, and process high-frequency telemetry at 20Hz to make instant engineering decisions on the pitwall."*
+### Step 1: Project Objective & The Complete F1 IoT Lifecycle (2 Minutes)
+- **Action:** Open the presentation view and show the top module navigation bar.
+- **Talking Points for Professors:**
+  > *"Respected professors, today we present our capstone project: **'Application of IoT in Motorsport: End-to-End Telemetry Pipeline & Intelligent Race Monitoring System.'**  
+  > In Formula 1, each car operates as a mobile high-density IoT edge network, generating over 1.1 billion telemetry points per Grand Prix. Our objective is to demonstrate the **complete IoT lifecycle in motorsport**, consisting of eight connected stages:  
+  > 1. **Virtual Physical Environment** (Monza dynamics core)  
+  > 2. **Sensor Acquisition** (19 calibrated edge sensors)  
+  > 3. **Data Framing & Transmission** (CAN-FD bus & sequence numbering)  
+  > 4. **IoT Gateway** (Node.js WebSocket & REST server on port 8080)  
+  > 5. **Stream Processing & Ingestion** (Schema 2.0 ring buffers & trend derivatives)  
+  > 6. **Real-Time Monitoring** (60fps rolling waveforms & 4-wheel matrix)  
+  > 7. **Automated Fault Detection** (Rule-based boundary & rate-of-change alerts)  
+  > 8. **Race Engineering Decision** (Closed feedback loop interventions modifying vehicle physics).  
+  > Rather than disconnected numbers or a simple racing game, every telemetry value originates from physical equations, flows through a real network pipeline, and responds to real engineering actions."*
 
 ---
 
-### Step 2: Starting the Race & Competitive AI Behavior (2 Minutes)
-- **Action:** Click **"AUTONOMOUS AI RACE"** or launch manually from the grid.
-- **What to Observe on Screen:**
-  1. **5 Red Lights Sequence:** The overhead starting gantry initiates an FIA-standard countdown. When all lights extinguish simultaneously, cars launch from their staggered grid slots on the Monza Rettifilo straight.
-  2. **High-Speed Slipstream Drafting:** Trailing cars enter the aerodynamic wake pocket within 42m, gaining a **$+22\text{ km/h}$ tow boost** and deploying DRS down the 1.1km main straight.
-  3. **Multi-Lane Overtaking (No Conga-Lines):** Trailing cars actively evaluate clear track space and pull into adjacent lanes (inside or outside line) with 100% throttle instead of checking up or braking behind slower cars.
-  4. **Late-Braking Chicane Dive-Bombs:** Drivers like Max Verstappen (#1) and Charles Leclerc (#16) carry higher speeds and brake 20m deeper into Variante del Rettifilo (Turn 1) and Variante della Roggia, trading positions wheel-to-wheel without leaving track limits.
-  5. **Dynamic Timing Tower:** The broadcast tower on the left tracks lap times, interval gaps to the leader in milliseconds, and dynamically updates positions (P1 through P6) on every lead swap.
-- **Talking Points for Faculty:**
-  > *"Notice how the cars behave competitively. We engineered an intelligent AI trajectory controller based on curvilinear spline physics. When cars close in, they don't form a conga-line or slow down artificially; trailing cars draft in the aerodynamic slipstream, pull alongside into clear lanes with full throttle, and perform late-braking dive-bombs into Turn 1 chicane, demonstrating realistic racecraft and multi-vehicle dynamics."*
+### Step 2: Module 01 — 3D Race Simulation & Camera Perspectives (2 Minutes)
+- **Action:** Click **[01 RACE SIM]** or press <kbd>C</kbd> to cycle camera modes.
+- **What to Demonstrate:**
+  1. **Monza Circuit Geometry:** Point out iconic landmarks: Variante del Rettifilo chicane, Curva Grande, Lesmo corners, Serraglio straight, Variante Ascari, Parabolica, and the historic 1955 banked oval bridge.
+  2. **6 Camera Perspectives:** Show professors the 6 authentic camera modes:
+     - **Cockpit POV:** Authentic Halo structure view with dynamic G-force driver head sway and high-speed chassis vibration.
+     - **Chase Camera:** Third-person trailing camera with speed lag.
+     - **TV Broadcast:** Trackside telephoto camera towers panning across the track.
+     - **Top-Down:** High-altitude birds-eye view tracking the car from above.
+     - **Pitwall Overview:** Fixed gantry perspective overlooking the main straight.
+     - **3D Orbit:** Free inspection camera orbiting the 3D car model with mouse drag and wheel zoom.
+  3. **Multi-Car Competitive AI:** Point out that all 6 cars race with genuine competitive physics (slipstream drafting, tow boost, and chicane braking).
 
 ---
 
-### Step 3: Demonstrating the Pitwall Engineering Telemetry Dashboard (2 Minutes)
-- **Action:** Press <kbd>T</kbd> or click **"Pitwall Telemetry Dashboard"** in the top navigation bar.
-- **Key Subsystems to Demonstrate:**
-  1. **Synchronous 20Hz Ingest Rate:** Point to the live status indicator showing synchronous 50ms packet transmission.
-  2. **Live Channel Switching Across All 6 Cars:** Click the driver selector dropdown (LEC, VER, HAM, NOR, ALO, GAS). The telemetry graphs, G-G circle, tire thermal matrix, and engine RPM instantly switch to monitor the chosen car's IoT data stream in real time.
-  3. **High-Frequency Waveform Traces:**
-     - **Speed & RPM Trace:** Showing 355+ km/h top speeds and 15,000 RPM 8-speed sequential gearbox shifts.
-     - **Pedal Inputs & G-Forces:** Spiking to $-5.1\text{G}$ longitudinal deceleration under braking at Turn 1, and $+4.2\text{G}$ lateral cornering loads through Curva Grande.
-  4. **Thermodynamic Subsystems:**
-     - 4-Wheel Pirelli Tire Model: Independent surface temperatures ($^\circ\text{C}$), internal pressure (psi), and slip angles for FL, FR, RL, and RR.
-     - Brembo Carbon-Carbon Brake Discs: Temperatures spiking past $850^\circ\text{C}$ on corner entry.
-     - Power Unit ICE Coolant & Hybrid ERS State of Charge (SoC).
-- **Talking Points for Faculty:**
-  > *"The pitwall dashboard operates as an IoT digital twin. Race engineers can monitor all 6 cars on track simultaneously or drill down into any individual driver's telemetry channel. Notice the physical relationship between downforce and braking: down the Rettifilo at 350 km/h, aerodynamic ground effect adds over 2,300 kg of normal load, allowing the driver to pull over 5G of deceleration without locking the tires."*
+### Step 3: Module 02 — Live IoT Telemetry Dashboard (2 Minutes)
+- **Action:** Click **[02 LIVE TELEMETRY]**.
+- **What to Demonstrate:**
+  1. **Synchronous 20Hz Sampling Rate:** Point out the ingest rate indicator (`20 Hz`).
+  2. **Multi-Car Telemetry Switching:** Click through the driver pills (`#16 Leclerc`, `#1 Verstappen`, `#44 Hamilton`, `#4 Norris`, `#14 Alonso`, `#10 Gasly`). Observe how all gauges, the 4-wheel matrix, the rolling waveforms, and the G-G traction circle instantly switch to monitor that driver's telemetry.
+  3. **4-Wheel Thermal Matrix:** Independent surface temperatures, wear rates, carbon-carbon rotor temperatures, and internal TPMS pressures for FL, FR, RL, RR.
+  4. **60 FPS Rolling Waveforms:** Speed trace (up to 355 km/h), pedal traces, engine RPM (up to 15,000), and coolant vs tire temperatures. Click **"PAUSE CHARTS"** to freeze the waveform for closer inspection, then click **"RESUME CHARTS"**.
+  5. **G-G Traction Circle:** Demonstrates combined lateral and longitudinal acceleration forces within the 5G friction limit.
 
 ---
 
-### Step 4: Rule-Based Engineering Diagnostic Engine (1.5 Minutes)
-- **Action:** Point out the **Event Log & Pitwall Recommendations** panel on the dashboard.
-- **What to Observe:**
-  - **ICE Overheating Alert ($>106^\circ\text{C}$):** Recommends *"Short-shift and lift-and-coast to manage cooling airflow."*
-  - **Tire Thermal Blistering ($>112^\circ\text{C}$):** Alerts race engineer that tire friction coefficient has degraded by $20\%$.
-  - **Brake Rotor Glazing Hazard ($>840^\circ\text{C}$):** Advises shifting brake bias forward or increasing duct airflow.
-- **Talking Points for Faculty:**
-  > *"Rather than presenting raw, uncurated sensor streams, our system incorporates an automated rule-based diagnostic engine. It continuously evaluates safety and performance thresholds derived from real F1 engineering specifications, providing actionable recommendations to the race engineer in under 50 milliseconds."*
+### Step 4: Module 03 — Virtual Sensor Registry & Wire-Cut Hardware Simulation (3 Minutes)
+- **Action:** Click **[03 VIRTUAL SENSORS]**.
+- **What to Demonstrate:**
+  1. **19-Sensor Hardware Registry:** Explain that each sensor has a unique ID (`SPD-01`, `RPM-01`, `ENG-T01`, `TIRE-FL-01`, `TPMS-01`, `BRK-T01`, `ACC-01`, `VIB-01`, `GPS-01`), subsystem tag, calibrated limits, sampling frequency, and CAN-FD bus routing.
+  2. **Subsystem Filters:** Click `POWERTRAIN`, `TIRES & TPMS`, `BRAKES`, `KINEMATICS`, and `CHASSIS`.
+  3. **Wire-Cut Disconnection (Crucial Examiner Point):**
+     - Click **"Cut Wire"** on `ENG-T01` (Coolant Thermistor) or `TPMS-01` (FL Pressure).
+     - Point out that the sensor reading immediately cuts to `null` and displays **`NO DATA (CUT)`** with an `OFFLINE` status.
+     - **Talking Point:** *"Notice that our virtual sensor registry strictly refuses to display stale data as current. When the physical CAN-FD line is severed, the system marks the sensor OFFLINE and passes null, exactly mirroring automotive safety standards."*
+     - Click **"Reconnect"** to restore nominal CAN-FD streaming.
+  4. **3D Digital Twin Highlighting:**
+     - Click **"3D Twin"** on any sensor (e.g. `BRK-T01` or `ENG-T01`).
+     - The camera automatically transitions to 3D Orbit mode, and a glowing visual beacon lights up directly at that sensor's physical component location on the car body!
 
 ---
 
-### Step 5: Post-Race Telemetry Comparison & CSV Export (1 Minute)
-- **Action:** Click **"Post-Race Analysis"** or complete a session.
-- **What to Show:**
-  1. **Dual-Lap Speed Overlay Comparison:** Select Lap 1 vs Lap 2; observe the overlaid velocity curves showing micro-differences in corner entry and exit speeds.
-  2. **CSV Export:** Click **"📥 Export CSV Telemetry"**; show the generated CSV file containing hundreds of synchronized 20Hz rows with timestamp, distance, speed, G-forces, RPM, gear, temperatures, and throttle/brake inputs.
-- **Talking Points for Faculty:**
-  > *"All 20Hz samples are logged into an in-memory ring buffer. Engineers can overlay laps to detect where tenths of a second were lost, and export the entire dataset to standard CSV format for external analysis in Python, MATLAB, or MoTeC i2 Pro."*
+### Step 5: Module 04 — IoT Network Pipeline Monitor (2 Minutes)
+- **Action:** Click **[04 NETWORK MONITOR]**.
+- **What to Demonstrate:**
+  1. **Animated Pipeline Diagram:** Follow data from Edge Sensors &rarr; CAN-FD Framing &rarr; WebSocket Gateway (Port 8080) &rarr; Telemetry Ingestion Engine &rarr; Pitwall Dashboard.
+  2. **Live Socket Metrics:**
+     - **Connected Clients:** Shows the number of connected monitors (e.g., 2 during dual-device testing).
+     - **Packets Sent & Received:** Exact packet counters.
+     - **Master Sequence ID:** Incremental master frame number.
+     - **Packet Loss %:** Detected gaps in the sequence counter.
+     - **Real RTT Latency:** Live ping-pong round-trip time in milliseconds (sub-5ms on local loopback).
+     - **Throughput:** Live bandwidth consumed in KB/s.
+  3. **Raw JSON Packet Inspector:**
+     - Show professors the live Schema 2.0 JSON packet.
+     - Click **"PAUSE / FREEZE"** to freeze the incoming buffer.
+     - Click **"COPY JSON"** to demonstrate clipboard export.
 
 ---
 
-### Step 6: Explaining the Telemetry Origin: Physics Simulation to IoT Gateway (1.5 Minutes)
-- **Action:** Point to the live 20Hz telemetry status and show the network WebSocket tab in browser DevTools.
-- **What to Explain to Faculty (Direct Answer to "Where does the data come from?"):**
-  > *"Respected professors, our project is an end-to-end software simulation and IoT telemetry streaming platform. The data is generated directly by our VehiclePhysics core running at 60 FPS in the browser. It solves analytical equations for aerodynamic downforce, Brembo brake rotor thermal dissipation, Pirelli tire degradation, and hybrid ERS-K deployment.  
-  > Every 50 milliseconds (20 Hz), our Telemetry Engine samples those 30+ physical channels, packages them into standardized JSON packets, and transmits them over a bi-directional WebSocket gateway to our Node.js server. This demonstrates the exact telemetry architecture used by Formula 1 teams (ATLAS / MoTeC), where the physics engine acts as the virtual sensor source."*
+### Step 6: Modules 05 & 06 — Real-Time Fault Injection & Closed-Loop Recovery (4 Minutes)
+- **Action:** Click **[05 FAULT SIMULATOR]**, then switch to **[06 DECISION SUPPORT]**.
+- **What to Demonstrate:**
+  1. **Inject Scenario A (ICE Powertrain Overheat):**
+     - Set Radiator Blockage to 85% and click **"INJECT OVERHEAT"**.
+     - An urgent toast banner appears on screen: *`CRITICAL ALERT: ENG-T01 Coolant Overheating (>114°C)`*.
+     - Switch to **[06 DECISION SUPPORT]**: Show the active diagnostic card displaying:
+       - Sensor: `ENG-T01` (ICE Coolant Radiator Thermistor)
+       - Measured: `116.4°C` vs Threshold: `114.0°C`
+       - Consequence: Severe cylinder head gasket warp hazard.
+       - Recommendation: Command Engine Map 3 Cooling & engage 90m Lift-and-Coast.
+  2. **Demonstrate Closed Feedback Loop Intervention (The Climax of the Presentation):**
+     - Click the blue action button: **`EXECUTE: COOLING MODE`**.
+     - Point out the confirmation alert and switch back to **[02 LIVE TELEMETRY]**.
+     - Observe how the engine coolant temperature on the rolling waveform chart actively cools down from 116°C back to 101°C, demonstrating a **closed-loop feedback intervention** that directly modifies underlying vehicle physics!
+  3. **Inject Scenario B (TPMS Slow Puncture):**
+     - Select Front-Left (FL) and click **"INJECT PUNCTURE"**.
+     - Pressure decays at -0.55 psi/sec. Once pressure drops below 17.5 psi, the rule engine raises a critical puncture alarm.
+     - In Module 06, click **`EXECUTE: PIT STOP`**.
+     - The car enters the pit box, fresh Pirelli tires are fitted, wear is zeroed, and tire pressure returns to nominal 21.0 psi!
+  4. **Master Reset:** Click **"RESET ALL SCENARIOS & RESTORE NOMINAL VEHICLE PHYSICS"** to restore factory baselines.
 
 ---
 
-## 3. Defense Table: Real-World Motorsport IoT vs. Our Project Innovations
-
-When your professor asks: *"What is existing in motorsport IoT and what have you modified/created?"*, refer directly to this table:
-
-| Engineering Dimension | Existing in Real Motorsport (F1 / WEC) | Our Project Implementation & Innovations | Why Our Approach is Better for University Evaluation |
-|---|---|---|---|
-| **Telemetry Architecture** | Proprietary closed ecosystems (McLaren Applied ATLAS, Magneti Marelli, Bosch Motorsport). Heavy, expensive license dongles costing $\$50,000+$. | **Open Web & Node.js IoT Stack:** Built on standard WebSockets, REST APIs, Three.js WebGL, and HTML5 Canvas. | Completely portable, open-source, runs in any modern browser without proprietary hardware licenses. |
-| **Data Acquisition (DAQ)** | Dedicated mil-spec CAN-FD / Ethernet bus linking 300+ sensors to an ECU (TAG-320). | **High-Fidelity Virtual Telemetry Engine:** Analytical vehicle physics core computing 30+ physical channels (aerodynamics, tire thermals, brake heat, hybrid ERS) at 60 FPS, sampled synchronously at 20 Hz. | Eliminates expensive sensor hardware while preserving physical mathematical validity. |
-| **Sampling & Ingest Rate** | $10\text{ Hz}$ to $200\text{ Hz}$ depending on channel (20Hz chassis, 100Hz dampers). | **Synchronous 20Hz Telemetry Engine:** Emits structured JSON frames every $50\text{ ms}$ with sub-15ms delivery latency. | Matches real chassis DAQ sampling while remaining lightweight for browser rendering. |
-| **Track & Circuit Simulation** | Multi-million dollar driver-in-the-loop (DIL) static simulators (Cruden, Ansible Motion). | **Zero-Obstacle Curvilinear Monza Spline:** 5,793m exact track with continuous ribbon fencing, realistic runoffs, and 3D kerbs. | Runs smoothly at 60 FPS directly on a student laptop with ACES Filmic tone mapping. |
-| **Multi-Vehicle AI Racecraft** | Simple AI often runs on fixed rails; either crashes or conga-lines behind slower cars. | **Competitive Multi-Agent F1 Intelligence:** Incorporates slipstream tow pocket ($+22\text{ km/h}$), DRS, early multi-lane overtaking, and late-braking chicane dive-bombs. | Entertaining, competitive racing showcasing dynamic position swaps and multi-car telemetry. |
-| **Engineering Diagnostics** | Proprietary telemetry alarms configured manually by pitwall data engineers. | **Automated Rule-Based Diagnostic Engine:** Real-time limit checking for engine overheating ($>106^\circ\text{C}$), tire graining ($>112^\circ\text{C}$), and brake rotor glowing ($>840^\circ\text{C}$). | Transparent, understandable, and immediately demonstrable during viva evaluation. |
+### Step 7: Dual-Device Multi-Monitor Demonstration (Optional 2 Minutes)
+- **Action:** Click **"DUAL-DEVICE"** in the top header.
+- **Talking Points for Professors:**
+  > *"To demonstrate enterprise-grade distributed IoT architectures, we can run this across two machines or browser tabs simultaneously. Device A runs the 3D physics environment at `?mode=sim`, while Device B runs the pitwall dashboard at `?mode=dashboard`. When we inject a fault on Device B, Device A's vehicle physics immediately changes over the WebSocket connection without any manual synchronization."*
 
 ---
 
-## 4. Key Viva Questions & Answers
+### Step 8: Post-Race Classification & CSV Export (1 Minute)
+- **Action:** Complete a lap or trigger race completion, then click **"EXPORT CSV TELEMETRY"**.
+- **What to Demonstrate:**
+  - The browser downloads a timestamped multi-parameter CSV file containing all 20Hz telemetry channels (speed, RPM, gear, pedals, thermals, TPMS, G-forces, and sensor statuses) ready for offline engineering analytics in Python, MATLAB, or Excel.
 
-**Q1: Why did you eliminate obstacles and how was it achieved?**  
-*Answer:* In our initial build, FIA fencing was constructed using straight 49-meter chord segments between spline nodes. Across curved sections like Curva Grande and the Parabolica, these flat planes cut across the curved track boundary. We built an automated 3D spatial inspection tool using Three.js world bounding boxes, converted the fencing into a 450-segment fine-resolution ribbon buffer with guaranteed 11.5m clearance, widened bridge piers to $\pm 40\text{m}$, and enforced a 23.25m radial exclusion zone for all trees, resulting in zero obstacles on the racing surface.
+---
 
-**Q2: Why were the cars slowing down previously, and how did you make them competitive?**  
-*Answer:* The earlier algorithm contained an aggressive collision avoidance clamp that reduced target speed to `other.speedKmh - 1.5` whenever a trailing car closed within 8.5 meters. This triggered harsh braking and created an artificial conga-line. We removed the speed penalty and replaced it with a multi-lane overtaking controller: trailing cars enter the slipstream tow pocket within 42m ($+22\text{ km/h}$ boost), step out into clear lateral lanes with 100% full throttle, and perform late-braking dive-bombs into chicanes based on driver aggression profiles.
+## 3. Frequently Asked Faculty Questions & Model Answers
 
-**Q3: Where is the data being fetched from? Is there physical hardware?**  
-*Answer:* This project is intentionally a 100% software and simulation-based IoT demonstration. Rather than connecting a toy breadboard with noisy readings, our telemetry data is generated by our custom vehicle dynamics physics core running at 60 FPS in the browser. It solves analytical differential equations for vehicle kinematics, speed-squared downforce, brake kinetic thermal conversion, and 4-corner tire thermodynamics. That data is sampled synchronously at 20Hz by the Telemetry Engine, formatted into standardized JSON packets, and dispatched over WebSocket and REST endpoints to the server and pitwall dashboard—demonstrating the exact same end-to-end IoT pipeline used by professional motorsport teams, with the vehicle physics environment acting as the virtual sensor source.
+### Q1: "Are these telemetry numbers randomly generated or physically calculated?"
+> **Answer:** *"Every number originates from our deterministic multipath physics engine. Vehicle speed is calculated by integrating net forces ($F_{\text{drive}} - F_{\text{brake}} - F_{\text{drag}} - F_{\text{rr}}$). Engine coolant temperature is governed by the thermal balance equation between combustion heat flux and radiator aerodynamic forced convection ($\dot{Q} = h \cdot A \cdot (1 - \text{blockage}) \cdot v \cdot \Delta T$). Brake rotor temperatures spike realistically during deceleration into Turn 1, converting kinetic energy into heat. There are zero disconnected random numbers in the pipeline."*
+
+### Q2: "How is the IoT pipeline architected?"
+> **Answer:** *"The pipeline follows modern industrial IoT edge architecture: 19 virtual sensors sample at 20Hz onto virtual CAN-FD buses, serialize into Schema 2.0 JSON packets with master sequence numbers and timestamps, stream over a full-duplex WebSocket connection to a Node.js gateway (Port 8080), and are ingested into rolling buffers on the pitwall dashboard for real-time monitoring and rule-based diagnostic evaluation."*
+
+### Q3: "What happens if a sensor disconnects?"
+> **Answer:** *"We implemented a dedicated hardware wire-cut simulation in Module 03. If a sensor line is severed, the registry sets `connected: false`, immediately drops the output to `null`, and marks the status `OFFLINE`. The pitwall UI displays `NO DATA (CUT)`. This is a critical safety principle in automotive IoT: a disconnected sensor must never report stale data as current."*
+
+### Q4: "How does the closed-loop decision support work?"
+> **Answer:** *"Most monitoring dashboards are read-only. In our system, Module 06 implements a closed feedback loop. When a fault is detected (e.g. engine overheating), clicking 'EXECUTE: COOLING MODE' dispatches an actuation command back into the `VehiclePhysics` instance, switching the ECU engine map and engaging 90m lift-and-coast, which physically drops thermal generation by 45% and brings temperatures back into the nominal operating window."*

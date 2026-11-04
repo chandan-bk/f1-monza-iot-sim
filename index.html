@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monza Grand Prix: Formula 1 IoT Telemetry & Race Simulator</title>
+  <title>Monza Grand Prix: Formula 1 IoT Telemetry &amp; Race Monitoring System 2.0</title>
   <link rel="stylesheet" href="css/style.css?v=2.2.0">
   <link rel="stylesheet" href="css/dashboard.css?v=2.2.0">
   <!-- Three.js r128 3D Engine & GLTFLoader (Offline Capable) -->
@@ -18,29 +18,31 @@
   <div id="screen-menu" class="app-screen active">
     <div class="menu-container">
       <span class="f1-badge">ENGINEERING CAPSTONE PROJECT</span>
-      <h1 class="menu-title">Autodromo Nazionale Monza IoT Simulator</h1>
-      <p class="menu-subtitle">Application of IoT in Motorsport: Real-Time Race Car Telemetry Monitoring & Engineering Analytics</p>
+      <h1 class="menu-title">Autodromo Nazionale Monza IoT Simulator 2.0</h1>
+      <p class="menu-subtitle">Application of IoT in Motorsport: End-to-End Race Car Telemetry Pipeline, Virtual Sensor Network &amp; Intelligent Race Engineering Analytics</p>
 
       <div class="project-meta-box">
-        <strong>PROJECT OVERVIEW:</strong> Demonstrating the application of IoT in Motorsport at the iconic 5,793m Autodromo Nazionale Monza ("Temple of Speed"). This simulation models real-time 20Hz sensor streaming across 6 competitive Formula 1 cars, capturing extreme 355 km/h straight-line kinematics, 5.2G braking into Turn 1, and 950°C carbon-carbon rotor thermal degradation. The system continuously samples vehicle kinematics, powertrain thermals, aerodynamic forces, and tire degradation at <strong>20 Hz</strong>, streaming packets through an IoT pipeline for real-time fault detection and post-race analysis.
+        <strong>PROJECT OVERVIEW:</strong> Demonstrating the complete Internet of Things (IoT) lifecycle in Formula 1 motorsport at the iconic 5,793m Autodromo Nazionale Monza (&quot;Temple of Speed&quot;).
+        This platform models real-time <strong>20 Hz</strong> calibrated sensor streaming across 6 competitive Formula 1 cars, capturing extreme 355 km/h straight-line kinematics, 5.2G braking into Variante del Rettifilo, and 1,020&deg;C carbon-carbon rotor thermal dynamics.
+        The architecture spans: <em>Virtual Physical Environment &rarr; 19 Calibrated Edge Sensors &rarr; CAN-FD Framing &rarr; WebSocket Gateway &rarr; Telemetry Ingestion Engine &rarr; Pitwall Dashboard &rarr; Automated Fault Diagnostics &rarr; Closed-Loop Engineering Intervention</em>.
       </div>
 
       <div class="menu-actions-grid">
         <div class="menu-card featured auto-race-card" id="btn-start-auto-race">
-          <div class="menu-card-badge">★ IDEAL FOR PRESENTATIONS</div>
-          <div class="menu-card-icon">🤖</div>
-          <div class="menu-card-title">Autonomous AI Race (IoT Monitor)</div>
-          <div class="menu-card-desc">All 6 cars race automatically with competitive AI. Sit back as Chief Race Engineer: observe live 20Hz sensor streaming, switch telemetry between drivers, and monitor automated diagnostics hands-free.</div>
+          <div class="menu-card-badge">&#11088; RECOMMENDED FOR FACULTY EVALUATION</div>
+          <div class="menu-card-icon">&#129302;</div>
+          <div class="menu-card-title">Autonomous AI Race (IoT Pitwall Monitor)</div>
+          <div class="menu-card-desc">All 6 cars race automatically with competitive AI physics. Sit back as Chief Race Engineer: observe live 20Hz sensor streaming across 6 modules, inspect raw JSON packets, inject hardware faults, and trigger automated feedback interventions.</div>
         </div>
 
         <div class="menu-card" id="btn-start-quick-race">
-          <div class="menu-card-icon">🏎️</div>
+          <div class="menu-card-icon">&#127950;&#65039;</div>
           <div class="menu-card-title">Quick Race (Manual Drive)</div>
-          <div class="menu-card-desc">Drive the race car yourself against 5 AI opponents with full keyboard controls, start countdown, and pitwall alerts.</div>
+          <div class="menu-card-desc">Drive the lead car yourself against 5 AI opponents with full keyboard vehicle controls, starting lights countdown, and live pitwall telemetry telemetry overlay.</div>
         </div>
 
         <div class="menu-card" id="btn-start-time-trial">
-          <div class="menu-card-icon">⏱️</div>
+          <div class="menu-card-icon">&#9201;&#65039;</div>
           <div class="menu-card-title">Time Trial Hotlap</div>
           <div class="menu-card-desc">Solo track session with live delta tracking, braking point analysis, sector splits, and reference lap comparison.</div>
         </div>
@@ -49,11 +51,11 @@
       <div class="controls-help-strip">
         <span><span class="key-tag">P</span> Auto-Drive Toggle</span>
         <span><span class="key-tag">1 - 6</span> Switch Car Sensor</span>
-        <span><span class="key-tag">W / ↑</span> Accelerate</span>
-        <span><span class="key-tag">S / ↓</span> Brake</span>
+        <span><span class="key-tag">W / &uarr;</span> Accelerate</span>
+        <span><span class="key-tag">S / &darr;</span> Brake</span>
         <span><span class="key-tag">A / D</span> Steer</span>
         <span><span class="key-tag">SPACE</span> Handbrake</span>
-        <span><span class="key-tag">C</span> Change Camera</span>
+        <span><span class="key-tag">C</span> Cycle Camera (6 Modes)</span>
         <span><span class="key-tag">T</span> Toggle View Layout</span>
         <span><span class="key-tag">R</span> Reset Car</span>
         <span><span class="key-tag">M</span> Mute Audio</span>
@@ -69,19 +71,32 @@
     <!-- Top Global Simulator Header -->
     <header class="sim-nav-header">
       <div class="nav-left">
-        <span class="brand-tag">MONZA F1 IoT PITWALL</span>
-        <span id="dash-mode-badge" class="mode-pill mode-sim">● 20Hz TELEMETRY STREAM</span>
-        <button id="btn-toggle-autodrive" class="nav-btn mode-autodrive-btn" title="Toggle Autonomous AI Driving (Hotkey: P)">🤖 AUTO-DRIVE: <span id="autodrive-status">OFF</span></button>
+        <span class="brand-tag">MONZA F1 IoT PITWALL 2.0</span>
+        <span id="dash-mode-badge" class="mode-pill mode-sim">&#9679; 20Hz TELEMETRY STREAM</span>
+        <button id="btn-toggle-autodrive" class="nav-btn mode-autodrive-btn" title="Toggle Autonomous AI Driving (Hotkey: P)">&#129302; AUTO-DRIVE: <span id="autodrive-status">OFF</span></button>
       </div>
 
       <div class="nav-center">
-        <button id="btn-view-driver" class="nav-btn">Driver View</button>
-        <button id="btn-view-split" class="nav-btn active">Split Screen</button>
-        <button id="btn-view-engineer" class="nav-btn">Pitwall Dashboard</button>
+        <!-- Six Connected Modules Navigation Tabs -->
+        <nav class="module-nav-strip">
+          <button class="mod-tab" data-module="race-sim" title="Module 01: 3D Race Simulation"><span class="mod-num">01</span> RACE SIM</button>
+          <button class="mod-tab active" data-module="live-telemetry" title="Module 02: Real-Time Pitwall Telemetry"><span class="mod-num">02</span> LIVE TELEMETRY</button>
+          <button class="mod-tab" data-module="sensor-mgmt" title="Module 03: Virtual Sensor Registry"><span class="mod-num">03</span> VIRTUAL SENSORS</button>
+          <button class="mod-tab" data-module="network-monitor" title="Module 04: IoT Network Pipeline"><span class="mod-num">04</span> NETWORK MONITOR</button>
+          <button class="mod-tab" data-module="fault-sim" title="Module 05: Real-Time Fault Injection"><span class="mod-num">05</span> FAULT SIMULATOR</button>
+          <button class="mod-tab" data-module="decision-support" title="Module 06: Race Engineer Decision Support"><span class="mod-num">06</span> DECISION SUPPORT</button>
+        </nav>
+
+        <div style="display:flex; gap:4px; margin-left: 8px;">
+          <button id="btn-view-driver" class="nav-btn">Driver View</button>
+          <button id="btn-view-split" class="nav-btn active">Split Screen</button>
+          <button id="btn-view-engineer" class="nav-btn">Pitwall Dashboard</button>
+        </div>
       </div>
 
       <div class="nav-right">
-        <button id="btn-audio-mute" class="nav-btn">🔊 AUDIO</button>
+        <button id="btn-open-presenter-modal" class="nav-btn" style="border-color: rgba(0, 229, 255, 0.4); color: #00e5ff;" title="Dual-Device / Multi-Monitor Presentation Setup">&#128241; DUAL-DEVICE</button>
+        <button id="btn-audio-mute" class="nav-btn">&#128266; AUDIO</button>
         <span id="dash-session-state" class="status-pill state-ready">READY</span>
       </div>
     </header>
@@ -93,22 +108,21 @@
       <div id="sim-viewport-wrapper" class="view-panel view-full">
         <div id="canvas-container"></div>
 
-      <!-- Floating IoT Race Engineer Urgent Banner -->
-      <div id="iot-urgent-toast" class="iot-urgent-toast" style="display:none;">
-        <div class="toast-icon" id="toast-icon">🚨</div>
-        <div class="toast-body">
-          <div class="toast-title" id="toast-title">CRITICAL ALERT</div>
-          <div class="toast-desc" id="toast-desc">Event details</div>
-          <div class="toast-action" id="toast-action">RECOMMENDED ACTION: ...</div>
+        <!-- Floating IoT Race Engineer Urgent Banner -->
+        <div id="iot-urgent-toast" class="iot-urgent-toast" style="display:none;">
+          <div class="toast-icon" id="toast-icon">&#128680;</div>
+          <div class="toast-body">
+            <div class="toast-title" id="toast-title">CRITICAL ALERT</div>
+            <div class="toast-desc" id="toast-desc">Event details</div>
+            <div class="toast-action" id="toast-action">RECOMMENDED ACTION: ...</div>
+          </div>
+          <button class="toast-dismiss" id="toast-dismiss">&times;</button>
         </div>
-        <button class="toast-dismiss" id="toast-dismiss">✕</button>
-      </div>
 
-
-        <!-- Cockpit & Broadcast HUD Overlay (Matching reference Images 1 & 2) -->
+        <!-- Cockpit & Broadcast HUD Overlay -->
         <div class="cockpit-hud-overlay">
           
-          <!-- Top Left: Official F1 Broadcast Timing Tower (Image 1 & 2) -->
+          <!-- Top Left: Official F1 Broadcast Timing Tower -->
           <div class="f1-broadcast-tower" id="broadcast-timing-tower">
             <div class="tower-header">
               <span class="tower-lap-badge" id="hud-lap-badge">LAP 1/3</span>
@@ -119,13 +133,13 @@
             </div>
           </div>
 
-          <!-- Top Center: Circular GPS Track Radar (Image 2) -->
+          <!-- Top Center: Circular GPS Track Radar -->
           <div class="cockpit-radar-container">
             <canvas id="cockpit-radar-canvas" width="110" height="110"></canvas>
             <div class="radar-label">TRACK RADAR</div>
           </div>
 
-          <!-- Top Right: TV Watermark & Timing Telemetry (Image 1 & 2) -->
+          <!-- Top Right: TV Watermark & Timing Telemetry -->
           <div class="tv-broadcast-meta">
             <div class="tv-badge-pill">
               <span class="tv-live-dot"></span>
@@ -136,10 +150,22 @@
               <div class="tv-time-row"><span class="tv-label">BEST</span> <span class="tv-val" id="tv-best-time">--:--.---</span></div>
               <div class="tv-time-row"><span class="tv-label">DELTA</span> <span class="tv-val" id="tv-delta-time">+0.000</span></div>
             </div>
-            <button id="btn-quick-cam" class="hud-cam-btn" title="Cycle Camera (C)">📷 <span id="cam-mode-label">COCKPIT</span></button>
+
+            <!-- Camera Perspective Selector (6 Perspectives) -->
+            <div class="camera-controls-strip" style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
+              <button id="btn-quick-cam" class="hud-cam-btn" title="Cycle Camera (C)">&#127909; <span id="cam-mode-label">COCKPIT</span></button>
+              <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 2px;">
+                <button class="cam-sel-btn" data-camera="COCKPIT" style="font-size:8px; padding:2px; background:rgba(0,0,0,0.6); border:1px solid #334155; color:#94a3b8; border-radius:2px; cursor:pointer;">CKP</button>
+                <button class="cam-sel-btn" data-camera="CHASE" style="font-size:8px; padding:2px; background:rgba(0,0,0,0.6); border:1px solid #334155; color:#94a3b8; border-radius:2px; cursor:pointer;">CHS</button>
+                <button class="cam-sel-btn" data-camera="TV_BROADCAST" style="font-size:8px; padding:2px; background:rgba(0,0,0,0.6); border:1px solid #334155; color:#94a3b8; border-radius:2px; cursor:pointer;">TV</button>
+                <button class="cam-sel-btn" data-camera="TOP_DOWN" style="font-size:8px; padding:2px; background:rgba(0,0,0,0.6); border:1px solid #334155; color:#94a3b8; border-radius:2px; cursor:pointer;">TOP</button>
+                <button class="cam-sel-btn" data-camera="PITWALL" style="font-size:8px; padding:2px; background:rgba(0,0,0,0.6); border:1px solid #334155; color:#94a3b8; border-radius:2px; cursor:pointer;">PIT</button>
+                <button class="cam-sel-btn" data-camera="ORBIT" style="font-size:8px; padding:2px; background:rgba(0,0,0,0.6); border:1px solid #334155; color:#94a3b8; border-radius:2px; cursor:pointer;">3D</button>
+              </div>
+            </div>
           </div>
 
-          <!-- Bottom Left: On-Screen Brake Pedal (Image 2) -->
+          <!-- Bottom Left: On-Screen Brake Pedal -->
           <div class="hud-pedal-container pedal-left">
             <div class="pedal-frame" id="hud-brake-pedal">
               <div class="pedal-ribs"></div>
@@ -147,7 +173,7 @@
             </div>
           </div>
 
-          <!-- Bottom Right: On-Screen Throttle Pedal (Image 2) -->
+          <!-- Bottom Right: On-Screen Throttle Pedal -->
           <div class="hud-pedal-container pedal-right">
             <div class="pedal-frame" id="hud-throttle-pedal">
               <div class="pedal-ribs"></div>
@@ -155,7 +181,7 @@
             </div>
           </div>
 
-          <!-- Center-Bottom: Formula 1 Digital Steering Wheel Display (active in chase & split views) -->
+          <!-- Center-Bottom: Formula 1 Digital Steering Wheel Display -->
           <div class="hud-steering-wheel-dash" id="hud-wheel-dash">
             <div class="rpm-led-bar" id="hud-rpm-leds"></div>
             <div class="dash-main-cluster">
@@ -171,16 +197,15 @@
             </div>
           </div>
 
-          
           <!-- Autonomous AI Autopilot Status Banner -->
           <div id="hud-autopilot-banner" class="hud-autopilot-pill hidden">
             <span class="autopilot-pulse"></span>
-            <span class="autopilot-text">🤖 AUTONOMOUS AI RACE ACTIVE &bull; PRESS [P] FOR MANUAL OVERRIDE</span>
+            <span class="autopilot-text">&#129302; AUTONOMOUS AI RACE ACTIVE &bull; PRESS [P] FOR MANUAL OVERRIDE</span>
           </div>
 
           <!-- Top Center: Track Limits & Barrier Collision Alert Banner -->
           <div id="hud-track-warning-banner" class="hud-warning-pill hidden">
-            <span class="warning-icon">⚠️</span>
+            <span class="warning-icon">&#9888;&#65039;</span>
             <span id="hud-warning-text" class="warning-text">TRACK LIMITS EXCEEDED - LAP INVALIDATED</span>
           </div>
 
@@ -197,255 +222,590 @@
 
       <!-- RIGHT / BOTTOM: PITWALL RACE ENGINEER TELEMETRY DASHBOARD -->
       <div id="pitwall-wrapper" class="view-panel view-hidden">
-        
-        <!-- Status Bar -->
-        <div class="telemetry-status-banner">
-          <div class="status-group">
-            <span class="status-label">INGEST RATE:</span>
-            <span class="status-val" id="dash-packet-rate">20 Hz</span>
-            <span class="status-label">LATENCY:</span>
-            <span class="status-val" id="dash-ping">LOCAL</span>
-          </div>
-          <div class="status-group">
-            <span class="status-label">TIME:</span>
-            <span class="status-val" id="dash-session-clock">00:00</span>
-            <span class="status-label">PROGRESS:</span>
-            <span class="status-val" id="dash-lap">LAP 1 / 2</span>
-          </div>
-        </div>
 
-        
-        <!-- Interactive IoT Live Incident & Strategic Scenario Console -->
-        <div class="iot-scenarios-bar" id="iot-scenarios-bar">
-          <div class="iot-bar-heading">
-            <span class="iot-badge">⚡ IOT INCIDENT & STRATEGY SIMULATOR</span>
-            <span class="iot-sub">Demonstrate real-time edge alerts, safety intervention & undercut strategy to examiners:</span>
-          </div>
-          <div class="iot-buttons-grid">
-            <button class="scenario-btn scen-brake" id="btn-scen-brake" title="Simulate 1,020°C Rotor Overheat into T1">🚨 Brake Thermal Runaway</button>
-            <button class="scenario-btn scen-puncture" id="btn-scen-puncture" title="Simulate Micro-Leak TPMS Alarm (-0.27 bar)">⚠️ Slow Puncture (TPMS)</button>
-            <button class="scenario-btn scen-strategy" id="btn-scen-strategy" title="Simulate Tire Cliff & Undercut Window">⏱️ Undercut Strategy Alert</button>
-            <button class="scenario-btn scen-drs" id="btn-scen-drs" title="Demonstrate Gap Proximity & DRS Wing Telemetry">⚡ DRS Authorization</button>
-          </div>
-        </div>
-
-        <!-- Live Car Telemetry Channel Selector (Autonomous & Multi-Car Monitoring) -->
-        <div class="telemetry-car-channel-bar">
-          <div class="channel-title">
-            <span class="pulse-dot"></span>
-            <span class="channel-label">MONITORED CAR SENSOR INGEST:</span>
-            <span class="active-driver-badge" id="active-driver-badge">#16 CHARLES LECLERC (SCUDERIA FERRARI HP)</span>
-          </div>
-          <div class="driver-pills-row" id="driver-pills-row"></div>
-        </div>
-
-        <!-- Metrics Overview Grid -->
-        <div class="metrics-overview-grid">
-          <div class="metric-gauge-card">
-            <span class="gauge-title">Speed</span>
-            <span class="metric-val" id="metric-speed">0</span>
-            <span class="metric-sub">km/h</span>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">Engine RPM</span>
-            <span class="metric-val" id="metric-rpm">4000</span>
-            <div class="meter-track"><div id="bar-rpm" class="meter-fill fill-rpm"></div></div>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">Gear</span>
-            <span class="metric-val" id="metric-gear">1</span>
-            <span class="metric-sub">8-Speed Seq</span>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">Throttle</span>
-            <span class="metric-val" id="metric-throttle">0%</span>
-            <div class="meter-track"><div id="bar-throttle" class="meter-fill fill-throttle"></div></div>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">Brake</span>
-            <span class="metric-val" id="metric-brake">0%</span>
-            <div class="meter-track"><div id="bar-brake" class="meter-fill fill-brake"></div></div>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">Lap Delta</span>
-            <span class="metric-val delta-green" id="metric-delta">+0.000s</span>
-            <span class="metric-sub">vs Best</span>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">ICE Temp</span>
-            <span class="metric-val temp-norm" id="metric-engine-temp">98.0°C</span>
-            <span class="metric-sub">Limit: 106°C</span>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">Long G</span>
-            <span class="metric-val" id="metric-g-long">0.0G</span>
-            <span class="metric-sub">Acc / Brake</span>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">Lat G</span>
-            <span class="metric-val" id="metric-g-lat">0.0G</span>
-            <span class="metric-sub">Cornering</span>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">ERS Battery</span>
-            <span class="metric-val" id="metric-ers">85%</span>
-            <span class="metric-sub">Hybrid SoC</span>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">DRS Status</span>
-            <span class="metric-val" id="metric-drs">CLOSED</span>
-            <span class="metric-sub">Rear Wing</span>
-          </div>
-          <div class="metric-gauge-card">
-            <span class="gauge-title">Fuel</span>
-            <span class="metric-val" id="metric-fuel">105 kg</span>
-            <span class="metric-sub">Remaining</span>
-          </div>
-        </div>
-
-        <!-- Body 2-Column: Tires & GPS Map vs Live Leaderboard -->
-        <div class="dashboard-main-columns">
+        <!-- ===================================================================
+             MODULE 02: LIVE TELEMETRY DASHBOARD PANEL
+             =================================================================== -->
+        <div id="mod-panel-telemetry" class="module-panel active">
           
-          <!-- Column 1: 4-Wheel Thermal Matrix -->
+          <!-- Status Banner -->
+          <div class="telemetry-status-banner">
+            <div class="status-group">
+              <span class="status-label">INGEST RATE:</span>
+              <span class="status-val" id="dash-packet-rate">20 Hz</span>
+              <span class="status-label">LATENCY:</span>
+              <span class="status-val" id="dash-ping">LOCAL</span>
+              <button id="btn-pause-charts" class="nav-btn" style="font-size:10px; padding:3px 8px; margin-left:8px;">&#9208; PAUSE CHARTS</button>
+            </div>
+            <div class="status-group">
+              <span class="status-label">TIME:</span>
+              <span class="status-val" id="dash-session-clock">00:00</span>
+              <span class="status-label">PROGRESS:</span>
+              <span class="status-val" id="dash-lap">LAP 1 / 2</span>
+            </div>
+          </div>
+
+          <!-- Live Car Telemetry Channel Selector (Autonomous & Multi-Car Monitoring) -->
+          <div class="telemetry-car-channel-bar">
+            <div class="channel-title">
+              <span class="pulse-dot"></span>
+              <span class="channel-label">MONITORED CAR SENSOR INGEST:</span>
+              <span class="active-driver-badge" id="active-driver-badge">#16 CHARLES LECLERC (SCUDERIA FERRARI HP)</span>
+            </div>
+            <div class="driver-pills-row" id="driver-pills-row"></div>
+          </div>
+
+          <!-- Metrics Overview Grid -->
+          <div class="metrics-overview-grid">
+            <div class="metric-gauge-card">
+              <span class="gauge-title">Speed</span>
+              <span class="metric-val" id="metric-speed">0</span>
+              <span class="metric-sub">km/h</span>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">Engine RPM</span>
+              <span class="metric-val" id="metric-rpm">4000</span>
+              <div class="meter-track"><div id="bar-rpm" class="meter-fill fill-rpm"></div></div>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">Gear</span>
+              <span class="metric-val" id="metric-gear">1</span>
+              <span class="metric-sub">8-Speed Seq</span>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">Throttle</span>
+              <span class="metric-val" id="metric-throttle">0%</span>
+              <div class="meter-track"><div id="bar-throttle" class="meter-fill fill-throttle"></div></div>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">Brake</span>
+              <span class="metric-val" id="metric-brake">0%</span>
+              <div class="meter-track"><div id="bar-brake" class="meter-fill fill-brake"></div></div>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">Lap Delta</span>
+              <span class="metric-val delta-green" id="metric-delta">+0.000s</span>
+              <span class="metric-sub">vs Best</span>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">ICE Temp</span>
+              <span class="metric-val temp-norm" id="metric-engine-temp">98.0&deg;C</span>
+              <span class="metric-sub">Limit: 106&deg;C</span>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">Long G</span>
+              <span class="metric-val" id="metric-g-long">0.0G</span>
+              <span class="metric-sub">Acc / Brake</span>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">Lat G</span>
+              <span class="metric-val" id="metric-g-lat">0.0G</span>
+              <span class="metric-sub">Cornering</span>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">ERS Battery</span>
+              <span class="metric-val" id="metric-ers">85%</span>
+              <span class="metric-sub">Hybrid SoC</span>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">DRS Status</span>
+              <span class="metric-val" id="metric-drs">CLOSED</span>
+              <span class="metric-sub">Rear Wing</span>
+            </div>
+            <div class="metric-gauge-card">
+              <span class="gauge-title">Fuel</span>
+              <span class="metric-val" id="metric-fuel">105 kg</span>
+              <span class="metric-sub">Remaining</span>
+            </div>
+          </div>
+
+          <!-- Body 2-Column: Tires & GPS Map vs Live Leaderboard -->
+          <div class="dashboard-main-columns">
+            
+            <!-- Column 1: 4-Wheel Thermal Matrix -->
+            <div class="telemetry-card">
+              <div class="telemetry-card-header">
+                <span class="header-title">4-Wheel Sensor &amp; Thermal Matrix</span>
+                <span class="header-tag">[Pirelli Soft Red]</span>
+              </div>
+              <div class="tire-matrix-grid">
+                <div class="tire-matrix-box" id="tire-box-fl">
+                  <div class="tire-pos-label">FRONT LEFT (FL)</div>
+                  <div class="tire-temp-reading" id="tire-temp-fl">88.0&deg;C</div>
+                  <div class="tire-wear-sub" id="tire-wear-fl">Wear: 0.0%</div>
+                  <div class="brake-disc-sub" id="brake-temp-fl">Disc: 320&deg;C</div>
+                  <div class="tpms-sub" id="tire-press-fl">TPMS: 1.65 bar</div>
+                </div>
+                <div class="tire-matrix-box" id="tire-box-fr">
+                  <div class="tire-pos-label">FRONT RIGHT (FR)</div>
+                  <div class="tire-temp-reading" id="tire-temp-fr">88.0&deg;C</div>
+                  <div class="tire-wear-sub" id="tire-wear-fr">Wear: 0.0%</div>
+                  <div class="brake-disc-sub" id="brake-temp-fr">Disc: 320&deg;C</div>
+                  <div class="tpms-sub" id="tire-press-fr">TPMS: 1.65 bar</div>
+                </div>
+                <div class="tire-matrix-box" id="tire-box-rl">
+                  <div class="tire-pos-label">REAR LEFT (RL)</div>
+                  <div class="tire-temp-reading" id="tire-temp-rl">92.0&deg;C</div>
+                  <div class="tire-wear-sub" id="tire-wear-rl">Wear: 0.0%</div>
+                  <div class="brake-disc-sub" id="brake-temp-rl">Disc: 280&deg;C</div>
+                  <div class="tpms-sub" id="tire-press-rl">TPMS: 1.65 bar</div>
+                </div>
+                <div class="tire-matrix-box" id="tire-box-rr">
+                  <div class="tire-pos-label">REAR RIGHT (RR)</div>
+                  <div class="tire-temp-reading" id="tire-temp-rr">92.0&deg;C</div>
+                  <div class="tire-wear-sub" id="tire-wear-rr">Wear: 0.0%</div>
+                  <div class="brake-disc-sub" id="brake-temp-rr">Disc: 280&deg;C</div>
+                  <div class="tpms-sub" id="tire-press-rr">TPMS: 1.65 bar</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Column 2: 2D GPS Circuit Map -->
+            <div class="telemetry-card">
+              <div class="telemetry-card-header">
+                <span class="header-title">2D GPS Track Radar &amp; Sectors</span>
+                <span class="header-tag">Autodromo Nazionale Monza (5.79 km)</span>
+              </div>
+              <canvas id="track-map-canvas" width="400" height="150" style="width: 100%; height: 150px; background: #07090e; border-radius: 4px;"></canvas>
+            </div>
+
+          </div>
+
+          <!-- Live Race Leaderboard -->
           <div class="telemetry-card">
             <div class="telemetry-card-header">
-              <span class="header-title">4-Wheel Sensor & Thermal Matrix</span>
-              <span class="header-tag">[Pirelli Soft Red]</span>
+              <span class="header-title">Official Session Timing &amp; Classification</span>
+              <span class="header-tag">FIA Timing Transponder Ingest</span>
             </div>
-            <div class="tire-matrix-grid">
-              <div class="tire-matrix-box" id="tire-box-fl">
-                <div class="tire-pos-label">FRONT LEFT (FL)</div>
-                <div class="tire-temp-reading" id="tire-temp-fl">88.0°C</div>
-                <div class="tire-wear-sub" id="tire-wear-fl">Wear: 0.0%</div>
-                <div class="brake-disc-sub" id="brake-temp-fl">Disc: 320°C</div>
-                <div class="tpms-sub" id="tire-press-fl">TPMS: 1.65 bar</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>POS</th>
+                  <th>NO</th>
+                  <th>DRIVER</th>
+                  <th>TEAM</th>
+                  <th>GAP</th>
+                  <th>INT</th>
+                  <th>LAST LAP</th>
+                  <th>BEST LAP</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-body"></tbody>
+            </table>
+          </div>
+
+          <!-- Live Real-Time 60fps Rolling Waveform Graphs -->
+          <div class="charts-matrix-grid">
+            <div class="chart-box">
+              <div class="chart-header">
+                <span>Vehicle Speed Profile</span>
+                <span>0 - 360 km/h</span>
               </div>
-              <div class="tire-matrix-box" id="tire-box-fr">
-                <div class="tire-pos-label">FRONT RIGHT (FR)</div>
-                <div class="tire-temp-reading" id="tire-temp-fr">88.0°C</div>
-                <div class="tire-wear-sub" id="tire-wear-fr">Wear: 0.0%</div>
-                <div class="brake-disc-sub" id="brake-temp-fr">Disc: 320°C</div>
-                <div class="tpms-sub" id="tire-press-fr">TPMS: 1.65 bar</div>
+              <canvas id="chart-speed" class="telemetry-canvas" width="500" height="120"></canvas>
+            </div>
+
+            <div class="chart-box">
+              <div class="chart-header">
+                <span>Pedal Telemetry: Throttle (Green) &amp; Brake (Red)</span>
+                <span>0 - 100%</span>
               </div>
-              <div class="tire-matrix-box" id="tire-box-rl">
-                <div class="tire-pos-label">REAR LEFT (RL)</div>
-                <div class="tire-temp-reading" id="tire-temp-rl">92.0°C</div>
-                <div class="tire-wear-sub" id="tire-wear-rl">Wear: 0.0%</div>
-                <div class="brake-disc-sub" id="brake-temp-rl">Disc: 280°C</div>
-                <div class="tpms-sub" id="tire-press-rl">TPMS: 1.65 bar</div>
+              <canvas id="chart-pedals" class="telemetry-canvas" width="500" height="120"></canvas>
+            </div>
+
+            <div class="chart-box">
+              <div class="chart-header">
+                <span>Powertrain: Engine RPM &amp; Sequential Gear</span>
+                <span>4,000 - 15,000 RPM</span>
               </div>
-              <div class="tire-matrix-box" id="tire-box-rr">
-                <div class="tire-pos-label">REAR RIGHT (RR)</div>
-                <div class="tire-temp-reading" id="tire-temp-rr">92.0°C</div>
-                <div class="tire-wear-sub" id="tire-wear-rr">Wear: 0.0%</div>
-                <div class="brake-disc-sub" id="brake-temp-rr">Disc: 280°C</div>
-                <div class="tpms-sub" id="tire-press-rr">TPMS: 1.65 bar</div>
+              <canvas id="chart-rpm" class="telemetry-canvas" width="500" height="120"></canvas>
+            </div>
+
+            <div class="chart-box">
+              <div class="chart-header">
+                <span>Thermal Profile: Engine Coolant vs Front Tire</span>
+                <span>60 - 130&deg;C</span>
               </div>
+              <canvas id="chart-temps" class="telemetry-canvas" width="500" height="120"></canvas>
             </div>
           </div>
 
-          <!-- Column 2: 2D GPS Circuit Map -->
+          <!-- Bottom Grid: G-G Traction Circle, Event Log & Diagnostics -->
+          <div class="dashboard-main-columns">
+            <!-- G-G Diagram -->
+            <div class="telemetry-card">
+              <div class="telemetry-card-header">
+                <span class="header-title">G-G Diagram (Traction Circle)</span>
+                <span class="header-tag">Friction Envelope &plusmn;5G</span>
+              </div>
+              <canvas id="chart-gg" class="gg-canvas" width="380" height="180"></canvas>
+            </div>
+
+            <!-- Live Rule-Based Engineering Diagnostic Event Log -->
+            <div class="telemetry-card">
+              <div class="telemetry-card-header">
+                <span class="header-title">Live Engineering Event Log</span>
+                <span class="header-tag">Rule Engine Ingest</span>
+              </div>
+              <div class="event-log-container" id="engineer-event-list"></div>
+            </div>
+          </div>
+
+          <!-- Intelligent Engineering Recommendations Card -->
           <div class="telemetry-card">
             <div class="telemetry-card-header">
-              <span class="header-title">2D GPS Track Radar & Sectors</span>
-              <span class="header-tag">Autodromo Nazionale Monza (5.79 km)</span>
+              <span class="header-title">Pitwall Engineering Recommendations</span>
+              <span class="header-tag">Telemetry Analytics Layer</span>
             </div>
-            <canvas id="track-map-canvas" width="400" height="150" style="width: 100%; height: 150px; background: #07090e; border-radius: 4px;"></canvas>
+            <div class="rec-cards-list" id="engineer-recommendations"></div>
           </div>
 
-        </div>
+        </div><!-- End Module 02 -->
 
-        <!-- Live Race Leaderboard -->
-        <div class="telemetry-card">
-          <div class="telemetry-card-header">
-            <span class="header-title">Official Session Timing & Classification</span>
-            <span class="header-tag">FIA Timing Transponder Ingest</span>
-          </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>POS</th>
-                <th>DRIVER</th>
-                <th>LAP</th>
-                <th>GAP</th>
-                <th>LAST LAP</th>
-                <th>BEST LAP</th>
-                <th>SECTORS (S1 / S2)</th>
-              </tr>
-            </thead>
-            <tbody id="leaderboard-body"></tbody>
-          </table>
-        </div>
-
-        <!-- Charts Grid (Speed, Pedals, RPM, Temps, G-G) -->
-        <div class="charts-grid-container">
-          <div class="chart-box">
-            <div class="chart-header">
-              <span>Velocity Telemetry Trace</span>
-              <span>0 - 360 km/h</span>
-            </div>
-            <canvas id="chart-speed" class="telemetry-canvas" width="500" height="120"></canvas>
-          </div>
-
-          <div class="chart-box">
-            <div class="chart-header">
-              <span>Pedal Inputs: Throttle (Green) vs Brake (Red)</span>
-              <span>0 - 100%</span>
-            </div>
-            <canvas id="chart-pedals" class="telemetry-canvas" width="500" height="120"></canvas>
-          </div>
-
-          <div class="chart-box">
-            <div class="chart-header">
-              <span>Powertrain: Engine RPM & Sequential Gear</span>
-              <span>4,000 - 15,000 RPM</span>
-            </div>
-            <canvas id="chart-rpm" class="telemetry-canvas" width="500" height="120"></canvas>
-          </div>
-
-          <div class="chart-box">
-            <div class="chart-header">
-              <span>Thermal Profile: Engine Coolant vs Front Tire</span>
-              <span>60 - 130°C</span>
-            </div>
-            <canvas id="chart-temps" class="telemetry-canvas" width="500" height="120"></canvas>
-          </div>
-        </div>
-
-        <!-- Bottom Grid: G-G Traction Circle, Event Log & Diagnostics -->
-        <div class="dashboard-main-columns">
+        <!-- ===================================================================
+             MODULE 03: VIRTUAL SENSOR MANAGEMENT PANEL
+             =================================================================== -->
+        <div id="mod-panel-sensors" class="module-panel">
           
-          <!-- G-G Diagram -->
+          <div class="sensor-mgmt-header">
+            <div>
+              <div style="font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+                <span>&#128268; VIRTUAL SENSOR REGISTRY &amp; CAN-FD BUS MONITOR</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
+                Unique hardware identifiers, calibrated boundaries, sampling rates, physical bus routing &amp; hardware wire-cut simulation.
+              </div>
+            </div>
+
+            <!-- Stats Summary -->
+            <div class="sensor-stats-summary">
+              <span class="stat-pill stat-total">TOTAL: <span id="sensor-stat-total">19</span></span>
+              <span class="stat-pill stat-online">ONLINE: <span id="sensor-stat-online">19</span></span>
+              <span class="stat-pill stat-warning">WARN: <span id="sensor-stat-warning">0</span></span>
+              <span class="stat-pill stat-critical">CRIT: <span id="sensor-stat-critical">0</span></span>
+              <span class="stat-pill stat-offline">CUT/OFF: <span id="sensor-stat-offline">0</span></span>
+            </div>
+          </div>
+
+          <!-- Filter Subsystem Strip -->
+          <div class="sensor-filter-strip">
+            <span style="font-size:11px; color:#94a3b8; align-self:center; font-weight:700;">SUBSYSTEM:</span>
+            <button class="filter-btn active" data-filter="ALL" onclick="f1App.dashboard.setSubsystemFilter('ALL')">ALL (19)</button>
+            <button class="filter-btn" data-filter="POWERTRAIN" onclick="f1App.dashboard.setSubsystemFilter('POWERTRAIN')">POWERTRAIN</button>
+            <button class="filter-btn" data-filter="TIRES" onclick="f1App.dashboard.setSubsystemFilter('TIRES')">TIRES &amp; TPMS</button>
+            <button class="filter-btn" data-filter="BRAKES" onclick="f1App.dashboard.setSubsystemFilter('BRAKES')">BRAKES</button>
+            <button class="filter-btn" data-filter="KINEMATICS" onclick="f1App.dashboard.setSubsystemFilter('KINEMATICS')">KINEMATICS &amp; IMU</button>
+            <button class="filter-btn" data-filter="CHASSIS" onclick="f1App.dashboard.setSubsystemFilter('CHASSIS')">CHASSIS &amp; AERO</button>
+          </div>
+
+          <!-- Dynamic Sensor Cards Grid -->
+          <div class="sensor-grid-container" id="sensor-registry-grid">
+            <!-- Dynamically populated by DashboardUI.renderSensorManagement() -->
+          </div>
+
+        </div><!-- End Module 03 -->
+
+        <!-- ===================================================================
+             MODULE 04: IoT NETWORK PIPELINE MONITOR PANEL
+             =================================================================== -->
+        <div id="mod-panel-network" class="module-panel">
+          
           <div class="telemetry-card">
             <div class="telemetry-card-header">
-              <span class="header-title">G-G Diagram (Traction Circle)</span>
-              <span class="header-tag">Friction Envelope ±5G</span>
+              <span class="header-title">&#128225; IoT End-to-End Telemetry Pipeline Architecture</span>
+              <span class="header-tag">WebSocket 20Hz Gateway Infrastructure</span>
             </div>
-            <canvas id="chart-gg" class="gg-canvas" width="380" height="180"></canvas>
-          </div>
+            
+            <!-- Animated Architecture Flow -->
+            <div class="network-architecture-flow">
+              <div class="arch-node active-node">
+                <div class="arch-node-title">&#128663; EDGE CAR SENSORS</div>
+                <div class="arch-node-sub">19 Calibrated Probes</div>
+                <div style="font-size:9px; color:#00e676; margin-top:2px;">CAN-FD #1 &bull; 20Hz</div>
+              </div>
+              <span class="arch-arrow">&rarr;</span>
 
-          <!-- Live Rule-Based Engineering Diagnostic Event Log -->
-          <div class="telemetry-card">
-            <div class="telemetry-card-header">
-              <span class="header-title">Live Engineering Event Log</span>
-              <span class="header-tag">Rule Engine Ingest</span>
+              <div class="arch-node active-node">
+                <div class="arch-node-title">&#9881;&#65039; CAN-FD ENCODER</div>
+                <div class="arch-node-sub">Microcontroller Ingest</div>
+                <div style="font-size:9px; color:#38bdf8; margin-top:2px;">JSON Schema 2.0</div>
+              </div>
+              <span class="arch-arrow">&rarr;</span>
+
+              <div class="arch-node active-node">
+                <div class="arch-node-title">&#128225; WEBSOCKET GATEWAY</div>
+                <div class="arch-node-sub">Node.js Port 8080</div>
+                <div style="font-size:9px; color:#a855f7; margin-top:2px;">/telemetry-stream</div>
+              </div>
+              <span class="arch-arrow">&rarr;</span>
+
+              <div class="arch-node active-node">
+                <div class="arch-node-title">&#128202; INGESTION ENGINE</div>
+                <div class="arch-node-sub">Rolling Buffers</div>
+                <div style="font-size:9px; color:#f59e0b; margin-top:2px;">Rule Diagnostics</div>
+              </div>
+              <span class="arch-arrow">&rarr;</span>
+
+              <div class="arch-node active-node">
+                <div class="arch-node-title">&#128421;&#65039; PITWALL DASHBOARD</div>
+                <div class="arch-node-sub">Digital Twin &amp; UI</div>
+                <div style="font-size:9px; color:#00e5ff; margin-top:2px;">60fps Waveforms</div>
+              </div>
             </div>
-            <div class="event-log-container" id="engineer-event-list"></div>
           </div>
 
-        </div>
+          <!-- Network Metrics Grid -->
+          <div class="network-metrics-grid">
+            <div class="net-metric-card">
+              <div class="net-metric-title">Socket Link</div>
+              <div class="net-metric-val" id="net-metric-status" style="color:#00e676;">ONLINE</div>
+              <div class="net-metric-sub">WebSocket Bidirectional</div>
+            </div>
 
-        <!-- Intelligent Engineering Recommendations Card -->
-        <div class="telemetry-card">
-          <div class="telemetry-card-header">
-            <span class="header-title">Pitwall Engineering Recommendations</span>
-            <span class="header-tag">Telemetry Analytics Layer</span>
+            <div class="net-metric-card">
+              <div class="net-metric-title">Clients</div>
+              <div class="net-metric-val" id="net-metric-clients">1 Connected</div>
+              <div class="net-metric-sub">Dual-Device Fleet</div>
+            </div>
+
+            <div class="net-metric-card">
+              <div class="net-metric-title">Packets Sent</div>
+              <div class="net-metric-val" id="net-metric-sent">0</div>
+              <div class="net-metric-sub">Edge Virtual Bus</div>
+            </div>
+
+            <div class="net-metric-card">
+              <div class="net-metric-title">Packets Ingested</div>
+              <div class="net-metric-val" id="net-metric-received">0</div>
+              <div class="net-metric-sub">Gateway Reception</div>
+            </div>
+
+            <div class="net-metric-card">
+              <div class="net-metric-title">Sequence ID</div>
+              <div class="net-metric-val" id="net-metric-seq">#0</div>
+              <div class="net-metric-sub">Master Packet Count</div>
+            </div>
+
+            <div class="net-metric-card">
+              <div class="net-metric-title">Packet Loss</div>
+              <div class="net-metric-val" id="net-metric-loss" style="color:#00e5ff;">0.0%</div>
+              <div class="net-metric-sub">Target &lt; 0.5%</div>
+            </div>
+
+            <div class="net-metric-card">
+              <div class="net-metric-title">RTT Latency</div>
+              <div class="net-metric-val" id="net-metric-latency">2 ms</div>
+              <div class="net-metric-sub">Real Ping-Pong Roundtrip</div>
+            </div>
+
+            <div class="net-metric-card">
+              <div class="net-metric-title">Sampling Rate</div>
+              <div class="net-metric-val" id="net-metric-hz">20.0 Hz</div>
+              <div class="net-metric-sub">Sensor Frequency</div>
+            </div>
+
+            <div class="net-metric-card">
+              <div class="net-metric-title">Throughput</div>
+              <div class="net-metric-val" id="net-metric-throughput">18.4 KB/s</div>
+              <div class="net-metric-sub">Bandwidth Consumed</div>
+            </div>
           </div>
-          <div class="rec-cards-list" id="engineer-recommendations"></div>
-        </div>
 
+          <!-- Raw Packet Inspector -->
+          <div class="packet-inspector-container">
+            <div class="inspector-header">
+              <div class="inspector-title">&#128196; LIVE TELEMETRY JSON PACKET INSPECTOR (SCHEMA 2.0)</div>
+              <div style="display:flex; gap:6px;">
+                <button id="btn-pause-inspector" class="nav-btn" style="font-size:10px; padding:3px 8px;">&#9208; PAUSE / FREEZE</button>
+                <button id="btn-copy-packet" class="nav-btn" style="font-size:10px; padding:3px 8px;">&#128203; COPY JSON</button>
+              </div>
+            </div>
+            <pre id="raw-packet-code" class="inspector-code-box">// Initializing 20Hz WebSocket JSON telemetry stream...</pre>
+          </div>
+
+        </div><!-- End Module 04 -->
+
+        <!-- ===================================================================
+             MODULE 05: FAULT SIMULATOR COCKPIT PANEL
+             =================================================================== -->
+        <div id="mod-panel-faults" class="module-panel">
+          
+          <div class="fault-cockpit-container">
+            <div class="fault-intro-banner">
+              <strong>&#9888;&#65039; IoT REAL-TIME FAULT INJECTION &amp; EDGE DIAGNOSTICS COCKPIT:</strong>
+              Inject real-world motorsport equipment anomalies into the vehicle physics and virtual sensor bus. The telemetry pipeline reflects the anomaly immediately, raising rule-based diagnostic alerts and offering closed-loop recovery interventions in Module 06.
+            </div>
+
+            <div class="fault-cards-grid">
+              
+              <!-- Scenario A -->
+              <div class="fault-scenario-card">
+                <div class="fault-card-header">
+                  <span class="fault-scenario-title">&#128293; Scenario A: ICE Powertrain Overheat</span>
+                  <span class="fault-badge">POWERTRAIN_THERMAL</span>
+                </div>
+                <div class="fault-card-desc">Simulates track debris clogging the radiator sidepods. Coolant temperature rises past 114.0&deg;C limit toward head gasket failure.</div>
+                <div class="fault-controls-row">
+                  <span style="font-size:10px; color:#94a3b8;">Blockage:</span>
+                  <input type="range" id="range-radiator-blockage" min="50" max="100" value="85" style="flex:1;">
+                  <button id="btn-trigger-fault-engine" class="btn-trigger-fault">INJECT OVERHEAT</button>
+                </div>
+              </div>
+
+              <!-- Scenario B -->
+              <div class="fault-scenario-card">
+                <div class="fault-card-header">
+                  <span class="fault-scenario-title">&#129656; Scenario B: Tire Micro-Leak (TPMS)</span>
+                  <span class="fault-badge">TIRE_PRESSURE</span>
+                </div>
+                <div class="fault-card-desc">Simulates a slow puncture on the tire carcass (-0.55 psi/sec). Pressure drops below 18.0 psi, leading to tread delamination.</div>
+                <div class="fault-controls-row">
+                  <select id="select-puncture-wheel" class="nav-btn" style="padding:4px 8px; font-size:10px;">
+                    <option value="fl">Front-Left (FL)</option>
+                    <option value="fr">Front-Right (FR)</option>
+                    <option value="rl">Rear-Left (RL)</option>
+                    <option value="rr">Rear-Right (RR)</option>
+                  </select>
+                  <button id="btn-trigger-fault-tpms" class="btn-trigger-fault">INJECT PUNCTURE</button>
+                </div>
+              </div>
+
+              <!-- Scenario C -->
+              <div class="fault-scenario-card">
+                <div class="fault-card-header">
+                  <span class="fault-scenario-title">&#128721; Scenario C: Carbon Rotor Overheat</span>
+                  <span class="fault-badge">BRAKE_THERMAL</span>
+                </div>
+                <div class="fault-card-desc">Simulates 90% front brake duct tape obstruction into Turn 1. Optical pyrometer reads &gt; 1,020&deg;C, risking fluid vaporization.</div>
+                <div class="fault-controls-row">
+                  <button id="btn-trigger-fault-brake" class="btn-trigger-fault">INJECT ROTOR OVERHEAT</button>
+                </div>
+              </div>
+
+              <!-- Scenario D -->
+              <div class="fault-scenario-card">
+                <div class="fault-card-header">
+                  <span class="fault-scenario-title">&#12336;&#65039; Scenario D: Mechanical Suspension Vibration</span>
+                  <span class="fault-badge">STRUCTURAL_HEALTH</span>
+                </div>
+                <div class="fault-card-desc">Simulates kerb impact damage to front damper upright. Accelerometer VIB-01 registers high-frequency oscillation (&gt; 3.5G RMS).</div>
+                <div class="fault-controls-row">
+                  <button id="btn-trigger-fault-vibration" class="btn-trigger-fault btn-amber">INJECT VIBRATION</button>
+                </div>
+              </div>
+
+              <!-- Scenario E -->
+              <div class="fault-scenario-card">
+                <div class="fault-card-header">
+                  <span class="fault-scenario-title">&#9986;&#65039; Scenario E: Sensor Physical Line Disconnection</span>
+                  <span class="fault-badge">SENSOR_OFFLINE</span>
+                </div>
+                <div class="fault-card-desc">Simulates CAN-FD wire harness fracture. Sensor value cuts to null and status switches to OFFLINE (no stale data).</div>
+                <div class="fault-controls-row">
+                  <select id="select-disconnect-sensor" class="nav-btn" style="padding:4px 8px; font-size:10px;">
+                    <option value="ENG-T01">ENG-T01 (Coolant Temp)</option>
+                    <option value="TPMS-01">TPMS-01 (FL Pressure)</option>
+                    <option value="BRK-T01">BRK-T01 (FL Brake Temp)</option>
+                    <option value="SPD-01">SPD-01 (Vehicle Speed)</option>
+                    <option value="VIB-01">VIB-01 (Bulkhead Vibration)</option>
+                  </select>
+                  <button id="btn-trigger-fault-disconnect" class="btn-trigger-fault btn-amber">CUT SENSOR WIRE</button>
+                </div>
+              </div>
+
+              <!-- Scenario F -->
+              <div class="fault-scenario-card">
+                <div class="fault-card-header">
+                  <span class="fault-scenario-title">&#128225; Scenario F: Wireless Network Degradation</span>
+                  <span class="fault-badge">NETWORK_LINK</span>
+                </div>
+                <div class="fault-card-desc">Simulates microwave multipath signal dropout through Ascari trees (40% packet loss, 140ms RTT delay).</div>
+                <div class="fault-controls-row">
+                  <button id="btn-trigger-fault-network" class="btn-trigger-fault btn-amber">INJECT PACKET LOSS</button>
+                </div>
+              </div>
+
+              <!-- Scenario G -->
+              <div class="fault-scenario-card" style="grid-column: 1 / -1; border-color: rgba(220, 38, 38, 0.4);">
+                <div class="fault-card-header">
+                  <span class="fault-scenario-title" style="color:#ef4444;">&#128165; Scenario G: Compound Multi-System Incident</span>
+                  <span class="fault-badge" style="background:#7f1d1d; color:#fca5a5;">MULTI_SYSTEM_FAIL</span>
+                </div>
+                <div class="fault-card-desc">Simulates catastrophic compound crisis: simultaneously triggers engine overheating, tire pressure micro-leak, and front brake thermal runaway to demonstrate complex race engineer triage.</div>
+                <div class="fault-controls-row">
+                  <button id="btn-trigger-fault-multi" class="btn-trigger-fault" style="background:#b91c1c;">INJECT COMPOUND MULTI-FAULT</button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Master Reset Button -->
+            <button id="btn-reset-all-scenarios" class="btn-reset-master">&#128260; RESET ALL FAULTS &amp; RESTORE NOMINAL VEHICLE PHYSICS</button>
+          </div>
+
+        </div><!-- End Module 05 -->
+
+        <!-- ===================================================================
+             MODULE 06: RACE ENGINEER DECISION SUPPORT PANEL
+             =================================================================== -->
+        <div id="mod-panel-decisions" class="module-panel">
+          
+          <div class="sensor-mgmt-header">
+            <div>
+              <div style="font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+                <span>&#128187; RACE ENGINEER DECISION SUPPORT SYSTEM (CLOSED FEEDBACK LOOP)</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
+                Automated rule engine detects telemetry threshold &amp; rate-of-change anomalies, computes operational consequences, and executes direct intervention commands back into the vehicle physics.
+              </div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="decision-summary-grid">
+              <span class="stat-pill stat-total">DETECTED: <span id="dec-stat-detected">0</span></span>
+              <span class="stat-pill stat-online">RESOLVED: <span id="dec-stat-resolved">0</span></span>
+              <span class="stat-pill stat-critical">ACTIVE CRIT: <span id="dec-stat-active-crit">0</span></span>
+              <span class="stat-pill stat-warning">ACTIVE WARN: <span id="dec-stat-active-warn">0</span></span>
+            </div>
+          </div>
+
+          <!-- Active Interventions Dynamic List -->
+          <div class="rec-cards-list" id="decision-active-events-list">
+            <!-- Dynamically populated by DashboardUI.renderDecisionSupport() -->
+          </div>
+
+        </div><!-- End Module 06 -->
+
+      </div><!-- End #pitwall-wrapper -->
+
+    </div><!-- End .race-layout-container -->
+  </div><!-- End #screen-race -->
+
+  <!-- =====================================================================
+       PRESENTER / DUAL-DEVICE MULTI-SCREEN SETUP MODAL
+       ===================================================================== -->
+  <div id="modal-presenter" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-title">&#127937; Multi-Device Dual Screen Architecture Setup</div>
+      <p style="font-size: 13px; line-height: 1.5; color: #cbd5e1; margin: 0;">
+        For academic examination and presentations to IoT faculty, this platform supports running the 3D race physics and the pitwall telemetry monitoring on two separate devices or browser windows simultaneously:
+      </p>
+
+      <div style="background: #070a0f; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; font-size: 12px; font-family: var(--font-mono, monospace);">
+        <div style="color: #00e5ff; font-weight: bold; margin-bottom: 4px;">DEVICE A (DRIVER POV / 3D SIMULATION):</div>
+        <div style="color: #94a3b8; margin-bottom: 8px;">URL: <code>http://localhost:8080/?mode=sim</code> (Full 3D WebGL physics, cockpit views, track camera towers)</div>
+        <div style="color: #00e5ff; font-weight: bold; margin-bottom: 4px;">DEVICE B (PITWALL RACE ENGINEER MONITOR):</div>
+        <div style="color: #94a3b8;">URL: <code>http://localhost:8080/?mode=dashboard</code> (Live gauges, 4-wheel matrix, sensor registry, fault injection)</div>
       </div>
 
+      <div style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
+        Telemetry packets stream over the local WebSocket server on port 8080 at 20Hz. Any fault injected on Device B directly influences vehicle physics on Device A in real time!
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+        <button id="btn-launch-separate-dash" class="nav-btn" style="background: var(--f1-red); color: #fff; padding: 8px 16px;">LAUNCH DASHBOARD IN NEW TAB</button>
+        <button id="btn-close-presenter-modal" class="nav-btn" style="padding: 8px 16px;">CLOSE</button>
+      </div>
     </div>
   </div>
 
@@ -455,11 +815,11 @@
   <div id="screen-results" class="app-screen">
     <div class="results-header">
       <div>
-        <h2 class="results-title">Session Classification & Engineering Analysis</h2>
+        <h2 class="results-title">Session Classification &amp; Engineering Analysis</h2>
         <span class="mode-pill mode-sim">OFFICIAL FIA TELEMETRY ARCHIVE</span>
       </div>
       <div>
-        <button id="btn-export-csv" class="nav-btn" style="background: var(--f1-red); color: #fff; padding: 8px 16px;">📥 EXPORT CSV TELEMETRY</button>
+        <button id="btn-export-csv" class="nav-btn" style="background: var(--f1-red); color: #fff; padding: 8px 16px;">&#128190; EXPORT CSV TELEMETRY</button>
         <button id="btn-return-menu" class="nav-btn" style="padding: 8px 16px;">MAIN MENU</button>
       </div>
     </div>
@@ -485,7 +845,6 @@
 
     <!-- Post-Race Analytics Grid -->
     <div class="results-grid">
-      
       <!-- Lap Comparison Overlay -->
       <div class="results-card">
         <div class="card-title">
@@ -504,13 +863,15 @@
         <div class="card-title">Engineering Performance Summary</div>
         <div id="post-race-summary-text"></div>
       </div>
-
     </div>
   </div>
 
-  <!-- Application Modules -->
+  <!-- =====================================================================
+       APPLICATION SCRIPT MODULES (OFFLINE CAPABLE)
+       ===================================================================== -->
   <script src="js/config.js?v=2.2.0"></script>
   <script src="js/track.js?v=2.2.0"></script>
+  <script src="js/sensor-registry.js?v=2.2.0"></script>
   <script src="js/car-model.js?v=2.2.0"></script>
   <script src="js/physics.js?v=2.2.0"></script>
   <script src="js/ai-driver.js?v=2.2.0"></script>
