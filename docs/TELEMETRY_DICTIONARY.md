@@ -72,6 +72,25 @@ Published for all 6 cars concurrently in `TELEMETRY_BATCH`:
   
   "engine_temperature": 101.4,
   "engine_temp_c": 101.4,
+
+  "tire_temp_fl": 94.2,
+  "tire_temp_fr": 93.8,
+  "tire_temp_rl": 96.1,
+  "tire_temp_rr": 95.8,
+
+  "tire_pressure_fl": 1.55,
+  "tire_pressure_fr": 1.55,
+  "tire_pressure_rl": 1.41,
+  "tire_pressure_rr": 1.41,
+
+  "brake_temp_fl": 412,
+  "brake_temp_fr": 415,
+  "brake_temp_rl": 320,
+  "brake_temp_rr": 322,
+
+  "race_position": 1,
+  "position": 1,
+
   "tires": {
     "fl_temp_c": 94.2,
     "fr_temp_c": 93.8,

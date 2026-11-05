@@ -67,8 +67,11 @@ function createServerInstance(options = {}) {
     commandsRelayed: 0,
     acksRelayed: 0,
     rejectedCommands: 0,
+    sequenceGaps: 0,
+    reconnections: 0,
     startTime: Date.now()
   };
+  const serverCarSequences = {};
 
   let app = null;
   let server = null;
@@ -194,10 +197,21 @@ function createServerInstance(options = {}) {
   }
 
   function handleIncomingBatch(batchData, source) {
-    if (!batchData || !Array.isArray(batchData.cars)) return;
+    if (!batchData || !Array.isArray(batchData.cars) || batchData.cars.length === 0) return;
     stats.packetsReceivedFromSim += batchData.cars.length;
     batchData.server_received_at = Date.now();
     latestTelemetryPacket = batchData;
+
+    // Track sequence gaps per vehicle stream
+    batchData.cars.forEach(car => {
+      if (car && car.car_id && typeof car.sequence_number === 'number') {
+        const lastSeq = serverCarSequences[car.car_id];
+        if (lastSeq !== undefined && car.sequence_number > lastSeq + 1) {
+          stats.sequenceGaps += (car.sequence_number - (lastSeq + 1));
+        }
+        serverCarSequences[car.car_id] = car.sequence_number;
+      }
+    });
 
     const broadcastMsg = JSON.stringify({
       type: 'TELEMETRY_BATCH',
@@ -241,6 +255,9 @@ function createServerInstance(options = {}) {
 
             sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
             clientRole = requestedRole;
+            if (stats.packetsReceivedFromSim > 0 || stats.packetsRelayedToDashboard > 0 || simClients.size > 0 || dashboardClients.size > 0) {
+              stats.reconnections++;
+            }
 
             if (clientRole === 'SIM') {
               simClients.set(ws, {
@@ -286,13 +303,33 @@ function createServerInstance(options = {}) {
             return;
           }
 
-          // 3. Multi-Car Telemetry Ingest (from SIM client)
+          // 3. Multi-Car Telemetry Ingest (from registered SIM client only)
           if (type === 'TELEMETRY_BATCH') {
+            if (!simClients.has(ws)) {
+              stats.rejectedCommands++;
+              ws.send(JSON.stringify({
+                type: 'ERROR',
+                code: 'UNAUTHORIZED_PUBLISHER',
+                message: 'Only registered SIM clients may publish telemetry batches',
+                timestamp: Date.now()
+              }));
+              return;
+            }
             handleIncomingBatch(parsed.data || parsed, 'sim_batch');
             return;
           }
 
           if (type === 'TELEMETRY_INGEST') {
+            if (!simClients.has(ws)) {
+              stats.rejectedCommands++;
+              ws.send(JSON.stringify({
+                type: 'ERROR',
+                code: 'UNAUTHORIZED_PUBLISHER',
+                message: 'Only registered SIM clients may publish telemetry',
+                timestamp: Date.now()
+              }));
+              return;
+            }
             handleIncomingPacket(parsed.data, 'sim_ws');
             return;
           }

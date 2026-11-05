@@ -72,6 +72,16 @@ Rather than relying on black-box heuristics, the telemetry engine evaluates tran
 
 ---
 
+## 5. Build 7 Multi-Car Engineering Integration Verification
+
+In Build 7, the platform underwent comprehensive integration testing across the vehicle dynamics core, telemetry pipeline, and WebSocket gateway:
+1. **6-Car Independent Physics & AI Dynamics**: Verified non-convergent, distinct speeds (LEC: 347.4, VER: 347.8, HAM: 347.6, NOR: 348.7, ALO: 346.4, GAS: 345.4 km/h) and independent grid slots (P1: 140m, P6: 50m).
+2. **Concurrent 6-Stream Batch Transmission**: 20 Hz batches serialize all 6 vehicles concurrently without restricting background streaming when the dashboard user switches monitored focus.
+3. **Single-Car Failure Isolation**: Wrapped serialization ensures that a failure or anomaly in one car's sensor registry does not interrupt the transmission of the other 5 vehicles.
+4. **Dual-Role WebSocket Security**: Only authenticated SIM clients are authorized to ingest telemetry; non-SIM clients attempting to publish are rejected with `UNAUTHORIZED_PUBLISHER`.
+5. **Closed-Loop Remote Interventions & Faults**: Race engineer commands (`COOLING_MODE`, `PIT_STOP`, `TYRE_PRESSURE_LEAK`, etc.) are routed to the specific target vehicle, executed on real physics, and acknowledged with exact post-execution state.
+6. **Sequence Gap Detection & Reconnections**: The server continuously monitors sequence continuity per vehicle stream and tracks client reconnection counts.
+
 ## 5. Experimental Results & Verification
 
 | Evaluation Parameter | Target Requirement | Measured Performance | Result |

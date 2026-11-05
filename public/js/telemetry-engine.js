@@ -118,21 +118,52 @@
       }
 
       this.lastSampleTimeMs = currentSessionTimeMs;
+      if (!Array.isArray(allCarsList)) {
+        return null;
+      }
+
+      // Calculate live race positions across all cars based on completed distance
+      const trackLen = (this.track && this.track.trackLength) || 5793;
+      const carDistances = allCarsList.map((car, idx) => {
+        const p = (car && car.physics) ? car.physics : car;
+        if (!p) return { idx, totalRaceDist: -1 };
+        const lap = p.lapCount || 1;
+        const dist = (p.trackProgress && p.trackProgress.distance) || p.trackDistance || 0;
+        return { idx, totalRaceDist: (lap - 1) * trackLen + dist };
+      });
+
+      carDistances.sort((a, b) => b.totalRaceDist - a.totalRaceDist);
+      const positionMap = {};
+      carDistances.forEach((item, posIdx) => {
+        positionMap[item.idx] = posIdx + 1; // 1 to 6
+      });
+
       const allPackets = [];
 
       allCarsList.forEach((car, idx) => {
-        const p = car.physics || car;
-        const pkt = this.buildTelemetryPacket(p, currentSessionTimeMs, idx);
-        allPackets.push(pkt);
+        try {
+          const p = (car && car.physics) ? car.physics : car;
+          if (!p) return;
+          const racePos = positionMap[idx] || (idx + 1);
+          const pkt = this.buildTelemetryPacket(p, currentSessionTimeMs, idx, racePos);
+          if (pkt) {
+            allPackets.push(pkt);
 
-        // If this is the active monitored car, feed rolling chart buffer and diagnostics
-        if (idx === this.monitoredCarIndex || p === this.physics) {
-          this.rollingBuffer.push(pkt);
-          if (this.rollingBuffer.length > this.maxBufferSize) {
-            this.rollingBuffer.shift();
+            // If this is the active monitored car, feed rolling chart buffer and diagnostics
+            if (idx === this.monitoredCarIndex || p === this.physics) {
+              this.rollingBuffer.push(pkt);
+              if (this.rollingBuffer.length > this.maxBufferSize) {
+                this.rollingBuffer.shift();
+              }
+              this.currentLapSamples.push(pkt);
+              this.evaluateEngineeringRules(pkt, currentSessionTimeMs);
+            }
           }
-          this.currentLapSamples.push(pkt);
-          this.evaluateEngineeringRules(pkt, currentSessionTimeMs);
+        } catch (err) {
+          // One car's failure must not prevent the other cars from being sampled
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn(`[TelemetryEngine] Error sampling car index ${idx}:`, err && err.message);
+          }
         }
       });
 
@@ -140,11 +171,11 @@
         timestamp_ms: currentSessionTimeMs,
         cars: allPackets,
         monitoredCarIndex: this.monitoredCarIndex,
-        monitoredPacket: allPackets[this.monitoredCarIndex] || allPackets[0]
+        monitoredPacket: allPackets[this.monitoredCarIndex] || allPackets[0] || null
       };
     }
 
-    buildTelemetryPacket(physicsInstance, timestampMs, carIndex = 0) {
+    buildTelemetryPacket(physicsInstance, timestampMs, carIndex = 0, racePosition = 1) {
       const p = physicsInstance || this.physics;
       const progress = p.trackProgress || {};
       const d = p.driver || { id: 'LEC', code: 'LEC', name: 'Charles Leclerc', team: 'Scuderia Ferrari HP', number: 16 };
@@ -218,6 +249,28 @@
         // Thermal Subsystems
         engine_temperature: parseFloat((p.engineTemp_C || 98).toFixed(1)),
         engine_temp_c: parseFloat((p.engineTemp_C || 98).toFixed(1)),
+        // Four Tyre Temperatures
+        tire_temp_fl: p.tires && p.tires.fl ? parseFloat((p.tires.fl.temp || 88).toFixed(1)) : 88.0,
+        tire_temp_fr: p.tires && p.tires.fr ? parseFloat((p.tires.fr.temp || 88).toFixed(1)) : 88.0,
+        tire_temp_rl: p.tires && p.tires.rl ? parseFloat((p.tires.rl.temp || 92).toFixed(1)) : 92.0,
+        tire_temp_rr: p.tires && p.tires.rr ? parseFloat((p.tires.rr.temp || 92).toFixed(1)) : 92.0,
+
+        // Four Tyre Pressures
+        tire_pressure_fl: flBar,
+        tire_pressure_fr: frBar,
+        tire_pressure_rl: rlBar,
+        tire_pressure_rr: rrBar,
+
+        // Four Brake Temperatures
+        brake_temp_fl: Math.round((p.brakes && p.brakes.fl && p.brakes.fl.temp) || 350),
+        brake_temp_fr: Math.round((p.brakes && p.brakes.fr && p.brakes.fr.temp) || 350),
+        brake_temp_rl: Math.round((p.brakes && p.brakes.rl && p.brakes.rl.temp) || 310),
+        brake_temp_rr: Math.round((p.brakes && p.brakes.rr && p.brakes.rr.temp) || 310),
+
+        // Race Position
+        race_position: racePosition,
+        position: racePosition,
+
         tires: {
           fl_temp_c: parseFloat((p.tires.fl.temp || 88).toFixed(1)),
           fr_temp_c: parseFloat((p.tires.fr.temp || 88).toFixed(1)),

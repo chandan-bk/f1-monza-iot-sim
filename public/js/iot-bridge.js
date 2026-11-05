@@ -50,6 +50,10 @@
       this.injectedLatencyMs = 0;
       this.injectedPacketLossRate = 0.0;
       this.droppedPacketsCount = 0;
+      this.sequenceGaps = 0;
+      this.reconnectionCount = 0;
+      this.attemptedTransmissions = 0;
+      this.lastSequences = {};
 
       // Pending remote commands: command_id -> { resolve, reject, timer }
       this.pendingCommands = new Map();
@@ -117,7 +121,19 @@
             }
 
             if (msg.type === 'TELEMETRY_BATCH') {
-              this.packetsReceived += (msg.cars ? msg.cars.length : 1);
+              const carCount = (msg.cars ? msg.cars.length : 1);
+              this.packetsReceived += carCount;
+              if (Array.isArray(msg.cars)) {
+                msg.cars.forEach(c => {
+                  if (c && c.car_id && typeof c.sequence_number === 'number') {
+                    const prevSeq = this.lastSequences[c.car_id];
+                    if (prevSeq !== undefined && c.sequence_number > prevSeq + 1) {
+                      this.sequenceGaps += (c.sequence_number - (prevSeq + 1));
+                    }
+                    this.lastSequences[c.car_id] = c.sequence_number;
+                  }
+                });
+              }
               this.updateStats();
               this.onBatchReceivedCallbacks.forEach(cb => cb(msg.cars, msg));
               return;
@@ -171,6 +187,7 @@
         this.ws.onclose = () => {
           this.isConnected = false;
           this.isRegistered = false;
+          this.reconnectionCount++;
           this.stopPingLoop();
           setTimeout(() => this.initWebSocket(wsUrl), 3000);
         };
@@ -227,25 +244,43 @@
     }
 
     sendVirtualTelemetryBatch(carsArray, sessionTimeMs) {
+      const count = (carsArray ? carsArray.length : 1);
+      this.attemptedTransmissions += count;
+
       if (!this.ws || this.ws.readyState !== 1) {
         return false;
       }
 
       if (this.injectedPacketLossRate > 0 && Math.random() < this.injectedPacketLossRate) {
-        this.droppedPacketsCount += (carsArray ? carsArray.length : 1);
+        this.droppedPacketsCount += count;
         return false;
       }
 
-      try {
-        this.ws.send(JSON.stringify({
-          type: 'TELEMETRY_BATCH',
-          cars: carsArray,
-          timestamp_ms: sessionTimeMs || Date.now(),
-          source: this.clientId,
-          timestamp: Date.now()
-        }));
+      const payloadStr = JSON.stringify({
+        type: 'TELEMETRY_BATCH',
+        cars: carsArray,
+        timestamp_ms: sessionTimeMs || Date.now(),
+        source: this.clientId,
+        timestamp: Date.now()
+      });
 
-        this.packetsSent += carsArray.length;
+      if (this.injectedLatencyMs > 0) {
+        setTimeout(() => {
+          if (this.ws && this.ws.readyState === 1) {
+            try {
+              this.ws.send(payloadStr);
+              this.packetsSent += count;
+              this.packetCount = this.packetsSent;
+              this.updateStats();
+            } catch (err) {}
+          }
+        }, this.injectedLatencyMs);
+        return true;
+      }
+
+      try {
+        this.ws.send(payloadStr);
+        this.packetsSent += count;
         this.packetCount = this.packetsSent;
         this.updateStats();
         return true;
@@ -318,6 +353,52 @@
 
     subscribeBatch(callback) {
       this.onBatchReceivedCallbacks.push(callback);
+    }
+
+    setInjectedLatency(ms) {
+      this.injectedLatencyMs = Math.max(0, parseInt(ms, 10) || 0);
+      return this.injectedLatencyMs;
+    }
+
+    setInjectedPacketLoss(rate) {
+      this.injectedPacketLossRate = Math.max(0, Math.min(1.0, parseFloat(rate) || 0));
+      return this.injectedPacketLossRate;
+    }
+
+    disconnectNetwork() {
+      if (this.ws) {
+        this.ws.close();
+        this.isConnected = false;
+        this.isRegistered = false;
+      }
+    }
+
+    resetNetworkFaults() {
+      this.injectedLatencyMs = 0;
+      this.injectedPacketLossRate = 0.0;
+      this.droppedPacketsCount = 0;
+      if (!this.isConnected && this.ws) {
+        this.initWebSocket();
+      }
+    }
+
+    getNetworkMetrics() {
+      return {
+        isConnected: this.isConnected,
+        isRegistered: this.isRegistered,
+        role: this.role,
+        sessionId: this.sessionId,
+        packetsSent: this.packetsSent,
+        packetsReceived: this.packetsReceived,
+        attemptedTransmissions: this.attemptedTransmissions,
+        droppedPacketsCount: this.droppedPacketsCount,
+        sequenceGaps: this.sequenceGaps,
+        reconnectionCount: this.reconnectionCount,
+        measuredRttMs: this.measuredRttMs,
+        injectedLatencyMs: this.injectedLatencyMs,
+        injectedPacketLossRate: this.injectedPacketLossRate,
+        currentHz: this.currentHz
+      };
     }
   }
 

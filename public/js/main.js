@@ -203,6 +203,13 @@ class F1SimApp {
     }
 
     this.postRace = new PostRaceAnalysis(this.telemetry);
+
+    // Register IoT Bridge Remote Command Execution Handler
+    if (this.bridge && this.bridge.registerCommandHandler) {
+      this.bridge.registerCommandHandler((action, payload, commandId) => {
+        return this.handleRemoteCommand(action, payload, commandId);
+      });
+    }
   }
 
 
@@ -253,6 +260,155 @@ class F1SimApp {
     if (this.dashboard && target) {
       this.dashboard.setMonitoredCarIndex(idx, target.driver);
     }
+  }
+
+  findCar(targetCarId) {
+    if (targetCarId === undefined || targetCarId === null) return null;
+    const allCars = this.getAllCars();
+    const idStr = String(targetCarId).toUpperCase().trim();
+
+    const idx = parseInt(idStr, 10);
+    if (!isNaN(idx) && idx >= 0 && idx < allCars.length && String(idx) === idStr) {
+      return allCars[idx];
+    }
+
+    return allCars.find(c => {
+      const d = (c && c.driver) || {};
+      return (d.code && d.code.toUpperCase() === idStr) ||
+             (d.id && d.id.toUpperCase() === idStr) ||
+             (d.name && d.name.toUpperCase().includes(idStr)) ||
+             (d.number && String(d.number) === idStr);
+    }) || null;
+  }
+
+  handleRemoteCommand(action, payload = {}, commandId) {
+    const act = (action || '').toUpperCase().trim();
+    if (!act) {
+      return { success: false, command_id: commandId, error: 'MISSING_COMMAND_ACTION' };
+    }
+
+    // 1. Remote Car Selection Command
+    if (act === 'SELECT_CAR' || act === 'SWITCH_CAR') {
+      const targetId = payload.target_car_id || payload.car_id || payload.index;
+      const targetCar = this.findCar(targetId);
+      if (!targetCar) {
+        return {
+          success: false,
+          command_id: commandId,
+          action: act,
+          error: `TARGET_CAR_NOT_FOUND: ${targetId}`
+        };
+      }
+      this.setMonitoredCarIndex(targetCar.index);
+      return {
+        success: true,
+        command_id: commandId,
+        action: act,
+        target_car_id: targetCar.driver.code || targetCar.driver.id,
+        result: {
+          monitoredCarIndex: targetCar.index,
+          driver: targetCar.driver.name,
+          code: targetCar.driver.code
+        }
+      };
+    }
+
+    // 2. Network-Level Interventions & Faults (Applies to simulator IoT bridge)
+    if (act === 'NETWORK_PACKET_LOSS') {
+      const rate = payload.rate !== undefined ? payload.rate : 0.15;
+      if (this.bridge && this.bridge.setInjectedPacketLoss) {
+        this.bridge.setInjectedPacketLoss(rate);
+      }
+      return {
+        success: true,
+        command_id: commandId,
+        action: act,
+        result: { packetLossRate: rate }
+      };
+    }
+
+    if (act === 'NETWORK_LATENCY') {
+      const ms = payload.latency_ms || payload.latencyMs || 100;
+      if (this.bridge && this.bridge.setInjectedLatency) {
+        this.bridge.setInjectedLatency(ms);
+      }
+      return {
+        success: true,
+        command_id: commandId,
+        action: act,
+        result: { latencyMs: ms }
+      };
+    }
+
+    if (act === 'NETWORK_DISCONNECT') {
+      if (this.bridge && this.bridge.disconnectNetwork) {
+        this.bridge.disconnectNetwork();
+      }
+      return {
+        success: true,
+        command_id: commandId,
+        action: act,
+        result: { disconnected: true }
+      };
+    }
+
+    if (act === 'NETWORK_RESTORE' || act === 'RESET_NETWORK') {
+      if (this.bridge && this.bridge.resetNetworkFaults) {
+        this.bridge.resetNetworkFaults();
+      }
+      return {
+        success: true,
+        command_id: commandId,
+        action: act,
+        result: { networkRestored: true }
+      };
+    }
+
+    // 3. Vehicle-Targeted Commands (Interventions, Physical Faults, Sensor Faults)
+    const targetId = payload.target_car_id || payload.car_id || (payload.index !== undefined ? payload.index : this.monitoredCarIndex);
+    const targetCar = this.findCar(targetId);
+    if (!targetCar || !targetCar.physics) {
+      return {
+        success: false,
+        command_id: commandId,
+        action: act,
+        error: `TARGET_CAR_NOT_FOUND: ${targetId}`
+      };
+    }
+
+    const p = targetCar.physics;
+    const carCode = targetCar.driver.code || targetCar.driver.id;
+
+    // Remote Engineering Interventions
+    const interventionActions = ['COOLING_MODE', 'PIT_STOP', 'BRAKE_BIAS', 'DAMPER_RECALIBRATION', 'LIFT_AND_COAST', 'RESET_INTERVENTION'];
+    if (interventionActions.includes(act)) {
+      const exec = p.applyIntervention(act, payload);
+      return Object.assign({ command_id: commandId, action: act, target_car_id: carCode }, exec);
+    }
+
+    // Physical Fault Injections
+    const physicalFaultActions = ['ENGINE_OVERHEAT', 'TYRE_PRESSURE_LEAK', 'BRAKE_OVERHEAT', 'VIBRATION', 'COMBINED_FAULTS', 'RESET_FAULTS'];
+    if (physicalFaultActions.includes(act)) {
+      const exec = p.injectPhysicalFault(act, payload);
+      return Object.assign({ command_id: commandId, action: act, target_car_id: carCode }, exec);
+    }
+
+    // Virtual Sensor Fault Injections
+    const sensorFaultActions = ['SENSOR_DISCONNECT', 'SENSOR_STUCK', 'SENSOR_NOISY', 'SENSOR_DELAY', 'SENSOR_FAULT'];
+    if (sensorFaultActions.includes(act)) {
+      const sensorId = payload.sensor_id || payload.sensorId || 'SPD-01';
+      const faultType = act.replace('SENSOR_', '');
+      const exec = p.injectSensorFault(sensorId, faultType, payload);
+      return Object.assign({ command_id: commandId, action: act, target_car_id: carCode }, exec);
+    }
+
+    return {
+      success: false,
+      command_id: commandId,
+      action: act,
+      target_car_id: carCode,
+      error: `UNSUPPORTED_COMMAND_ACTION: ${action}`
+    };
   }
 
   toggleAutoDrive() {
@@ -317,6 +473,30 @@ class F1SimApp {
           break;
         case 'Escape':
           this.togglePause();
+          break;
+        case 'Digit1':
+        case 'Numpad1':
+          this.setMonitoredCarIndex(0);
+          break;
+        case 'Digit2':
+        case 'Numpad2':
+          this.setMonitoredCarIndex(1);
+          break;
+        case 'Digit3':
+        case 'Numpad3':
+          this.setMonitoredCarIndex(2);
+          break;
+        case 'Digit4':
+        case 'Numpad4':
+          this.setMonitoredCarIndex(3);
+          break;
+        case 'Digit5':
+        case 'Numpad5':
+          this.setMonitoredCarIndex(4);
+          break;
+        case 'Digit6':
+        case 'Numpad6':
+          this.setMonitoredCarIndex(5);
           break;
       }
     });
@@ -630,28 +810,37 @@ class F1SimApp {
       );
     }
 
-    // 4. Telemetry Sampling (20Hz)
-    const packet = this.telemetry.update(sessionTimeMs);
-    if (packet) {
-      this.bridge.sendVirtualTelemetry(packet);
+    // 4. Multi-Car Telemetry Sampling (20Hz)
+    const allCars = this.getAllCars();
+    const batch = this.telemetry.sampleAll(allCars, sessionTimeMs);
 
-      // Pass all AI cars and monitored target to dashboard and track map
-      const aiPhysicsList = this.aiCars.map(c => c.physics);
-      this.dashboard.update(
-        packet,
-        this.playerPhysics,
-        aiPhysicsList,
-        monPhys,
-        this.session
-      );
-
-      if (this.trackMap) {
-        this.trackMap.render(this.playerPhysics, aiPhysicsList, monPhys);
+    if (batch) {
+      // Stream all 6 vehicles over WebSocket bridge
+      if (this.bridge && this.bridge.sendVirtualTelemetryBatch) {
+        this.bridge.sendVirtualTelemetryBatch(batch.cars, sessionTimeMs);
       }
 
-      this.updateCockpitHUD(packet);
-      this.updateBroadcastTimingTower(packet);
-      this.renderCockpitRadar();
+      // Local dashboard continues focusing on currently monitored car
+      const packet = batch.monitoredPacket || batch.cars[this.monitoredCarIndex] || batch.cars[0];
+
+      if (packet) {
+        const aiPhysicsList = this.aiCars.map(c => c.physics);
+        this.dashboard.update(
+          packet,
+          this.playerPhysics,
+          aiPhysicsList,
+          monPhys,
+          this.session
+        );
+
+        if (this.trackMap) {
+          this.trackMap.render(this.playerPhysics, aiPhysicsList, monPhys);
+        }
+
+        this.updateCockpitHUD(packet);
+        this.updateBroadcastTimingTower(packet);
+        this.renderCockpitRadar();
+      }
     }
   }
 

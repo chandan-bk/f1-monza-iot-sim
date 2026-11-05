@@ -276,6 +276,77 @@ assert.strictEqual(currentMon.driver.code, 'HAM', 'Monitored vehicle must switch
 assert.strictEqual(app.telemetry.monitoredCarIndex, 2);
 console.log('✓ Monitored car selection verified: target set to #44 HAM without disrupting 6-car background streaming.');
 
+// 11. Test Single-Car Failure Isolation (Fault-Tolerant Sampling)
+const corruptedList = [
+  allCars[0],
+  { physics: null }, // Corrupted vehicle entry
+  allCars[2],
+  allCars[3],
+  allCars[4],
+  allCars[5]
+];
+const isolatedBatch = app.telemetry.sampleAll(corruptedList, 11050);
+assert.ok(isolatedBatch, 'sampleAll must return a valid batch even if one car is malformed');
+assert.strictEqual(isolatedBatch.cars.length, 5, 'Failure in 1 car must not prevent other 5 cars from being sampled');
+console.log('✓ Single-car failure isolation verified: corrupted vehicle isolated, remaining 5 streams delivered.');
+
+// 12. Test Simulator Command Handler (app.handleRemoteCommand)
+// A. SELECT_CAR Command
+const switchAck = app.handleRemoteCommand('SELECT_CAR', { target_car_id: 'VER' }, 'cmd_sw_01');
+assert.strictEqual(switchAck.success, true);
+assert.strictEqual(switchAck.command_id, 'cmd_sw_01');
+assert.strictEqual(app.monitoredCarIndex, 1);
+assert.strictEqual(app.getMonitoredPhysics().driver.code, 'VER');
+console.log('✓ Remote command SELECT_CAR verified: focused car switched to #1 VER.');
+
+// B. Remote Intervention: COOLING_MODE
+const coolAck = app.handleRemoteCommand('COOLING_MODE', { target_car_id: 'LEC' }, 'cmd_cool_02');
+assert.strictEqual(coolAck.success, true);
+assert.strictEqual(coolAck.command_id, 'cmd_cool_02');
+assert.strictEqual(allCars[0].physics.interventions.coolingMode, true);
+console.log('✓ Remote command COOLING_MODE verified on target vehicle #16 LEC.');
+
+// C. Remote Fault: TYRE_PRESSURE_LEAK
+const leakAck = app.handleRemoteCommand('TYRE_PRESSURE_LEAK', { target_car_id: 'NOR', wheel: 'fl' }, 'cmd_leak_03');
+assert.strictEqual(leakAck.success, true);
+assert.strictEqual(leakAck.command_id, 'cmd_leak_03');
+assert.strictEqual(allCars[3].physics.faults.tyreLeak, true);
+console.log('✓ Remote command TYRE_PRESSURE_LEAK verified on target vehicle #4 NOR.');
+
+// D. Sensor Fault: SENSOR_DISCONNECT
+const sensAck = app.handleRemoteCommand('SENSOR_DISCONNECT', { target_car_id: 'ALO', sensor_id: 'SPD-01' }, 'cmd_sens_04');
+assert.strictEqual(sensAck.success, true);
+assert.strictEqual(sensAck.command_id, 'cmd_sens_04');
+console.log('✓ Remote command SENSOR_DISCONNECT verified on target vehicle #14 ALO.');
+
+// E. Network Faults & Restoration
+const netAck = app.handleRemoteCommand('NETWORK_PACKET_LOSS', { rate: 0.2 }, 'cmd_net_05');
+assert.strictEqual(netAck.success, true);
+assert.strictEqual(app.bridge.injectedPacketLossRate, 0.2);
+app.handleRemoteCommand('NETWORK_RESTORE', {}, 'cmd_net_06');
+assert.strictEqual(app.bridge.injectedPacketLossRate, 0.0);
+console.log('✓ Remote command NETWORK_PACKET_LOSS and NETWORK_RESTORE verified on IoT bridge.');
+
+// F. Invalid Command Rejection
+const badCmd = app.handleRemoteCommand('UNKNOWN_INVALID_ACTION', { target_car_id: 'LEC' }, 'cmd_bad_07');
+assert.strictEqual(badCmd.success, false);
+assert.ok(badCmd.error.includes('UNSUPPORTED_COMMAND_ACTION'));
+
+const badTarget = app.handleRemoteCommand('COOLING_MODE', { target_car_id: 'NON_EXISTENT_DRIVER' }, 'cmd_bad_08');
+assert.strictEqual(badTarget.success, false);
+assert.ok(badTarget.error.includes('TARGET_CAR_NOT_FOUND'));
+console.log('✓ Invalid command rejection verified for malformed action and missing target car.');
+
+// 13. Test Simulator Update Loop Telemetry Broadcasting
+let transmittedBatch = null;
+app.bridge.sendVirtualTelemetryBatch = (cars, time) => {
+  transmittedBatch = cars;
+};
+app.updateSimulation(0.05, 12000);
+assert.ok(transmittedBatch, 'updateSimulation must broadcast 6-car batch over IoT bridge');
+assert.strictEqual(transmittedBatch.length, 6, 'Simulator update loop must transmit all 6 vehicles');
+console.log('✓ Simulator update loop verified: full 6-car telemetry batch successfully transmitted.');
+
 console.log('\n================================================================');
 console.log('  ★ ALL HEADLESS SIMULATION & DYNAMICS TESTS PASSED WITH 100% SUCCESS');
 console.log('================================================================\n');
