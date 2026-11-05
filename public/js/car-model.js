@@ -19,6 +19,33 @@ class F1CarModel {
   static baseGLTF = null;
   static isGlobalLoading = false;
   static pendingCallbacks = [];
+  static _carbonTex = null;
+
+  static getCarbonTexture() {
+    if (F1CarModel._carbonTex) return F1CarModel._carbonTex;
+    if (typeof document === 'undefined') return null;
+    const c = document.createElement('canvas');
+    c.width = 128;
+    c.height = 128;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#111316';
+    ctx.fillRect(0, 0, 128, 128);
+    for (let y = 0; y < 128; y += 4) {
+      for (let x = 0; x < 128; x += 4) {
+        const isOdd = ((x / 4) + (y / 4)) % 2 === 0;
+        ctx.fillStyle = isOdd ? '#1e2229' : '#0d0f12';
+        ctx.fillRect(x, y, 4, 4);
+        ctx.fillStyle = isOdd ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.18)';
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(6, 6);
+    F1CarModel._carbonTex = tex;
+    return tex;
+  }
 
   constructor(driverConfig) {
     this.driver = driverConfig;
@@ -56,6 +83,18 @@ class F1CarModel {
     this.fallbackGroup = new THREE.Group();
     this.buildHighDetailProceduralCar();
     this.root.add(this.fallbackGroup);
+
+    // High-Intensity Formula 1 Rain Light (visible in reference photo under rear exhaust)
+    const rainLightGeo = new THREE.BoxGeometry(0.09, 0.16, 0.04);
+    this.rainLightMat = new THREE.MeshStandardMaterial({
+      color: 0xff0022,
+      emissive: 0xff0022,
+      emissiveIntensity: 3.5,
+      roughness: 0.2
+    });
+    this.rainLight = new THREE.Mesh(rainLightGeo, this.rainLightMat);
+    this.rainLight.position.set(0, 0.22, -1.86);
+    this.root.add(this.rainLight);
 
     // Build 3D Sensor Hotspots on vehicle
     this.buildSensorHotspots();
@@ -125,22 +164,29 @@ class F1CarModel {
     const carbonColor = new THREE.Color(0x16181d);
     const gloveColor = new THREE.Color(this.driver.gloveColor || this.driver.color);
 
-    const teamLiveryMat = new THREE.MeshStandardMaterial({
+    const teamLiveryMat = new THREE.MeshPhysicalMaterial({
       color: mainColor,
-      metalness: 0.72,
-      roughness: 0.20
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.05,
+      roughness: 0.16,
+      metalness: 0.22,
+      reflectivity: 0.95
     });
 
-    const carbonMat = new THREE.MeshStandardMaterial({
+    const carbonTex = F1CarModel.getCarbonTexture();
+    const carbonMat = new THREE.MeshPhysicalMaterial({
       color: carbonColor,
-      metalness: 0.85,
-      roughness: 0.45
+      map: carbonTex,
+      roughness: 0.38,
+      metalness: 0.40,
+      clearcoat: 0.55,
+      clearcoatRoughness: 0.18
     });
 
     const tireRubberMat = new THREE.MeshStandardMaterial({
-      color: 0x161618,
-      roughness: 0.90,
-      metalness: 0.08
+      color: 0x141517,
+      roughness: 0.85,
+      metalness: 0.06
     });
 
     const wheelParts = [];
@@ -491,6 +537,12 @@ class F1CarModel {
       }
     }
     this.updateSmokeParticles(0.016);
+
+    // Pulse high-intensity Formula 1 rear rain light LED
+    if (this.rainLightMat) {
+      const pulse = Math.sin(performance.now() * 0.012);
+      this.rainLightMat.emissiveIntensity = 2.8 + pulse * 1.4;
+    }
 
     // Pulse active Digital Twin hotspot
     if (this.activeHighlightedSensorId) {

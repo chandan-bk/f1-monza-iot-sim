@@ -53,7 +53,7 @@ class F1SimApp {
     this.postRace = null;
 
     // Camera Configuration: COCKPIT (Default) | CHASE | TV_BROADCAST
-    this.cameraMode = 'COCKPIT';
+    this.cameraMode = 'CHASE';
     this.activeViewLayout = 'SPLIT'; // 'DRIVER_ONLY' | 'SPLIT' | 'ENGINEER_ONLY'
 
     // Input State
@@ -101,7 +101,7 @@ class F1SimApp {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.18;
+    this.renderer.toneMappingExposure = 1.25;
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -412,10 +412,10 @@ class F1SimApp {
     // Configure Autonomous Driving Mode
     if (mode === 'AUTONOMOUS_RACE') {
       this.autoDrive = true;
-      this.cameraMode = 'COCKPIT'; // Authentic Driver POV through Halo structure
+      this.cameraMode = 'CHASE';
     } else {
       this.autoDrive = false;
-      this.cameraMode = 'COCKPIT';
+      this.cameraMode = 'CHASE';
     }
 
     const statusSpan = document.getElementById('autodrive-status');

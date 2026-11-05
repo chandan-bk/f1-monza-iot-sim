@@ -18,7 +18,9 @@ const createMockCanvas = () => ({
     fillRect: () => {},
     strokeRect: () => {},
     fillText: () => {},
-    setLineDash: () => {}
+    setLineDash: () => {},
+    createImageData: () => ({ data: new Uint8Array(512 * 512 * 4) }),
+    putImageData: () => {}
   }),
   appendChild: () => {},
   querySelectorAll: () => [],
