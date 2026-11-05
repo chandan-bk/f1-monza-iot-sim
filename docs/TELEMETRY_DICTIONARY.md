@@ -1,48 +1,144 @@
-# Motorsport Telemetry Dictionary & Alert Rule Specifications
+# Motorsport Telemetry Dictionary & Virtual Sensor Specifications
 
-## 1. Comprehensive Telemetry Parameters Dictionary
+## 1. 19-Channel Virtual Sensor Registry (`F1SensorRegistry`)
 
-All telemetry is sampled at **20 Hz synchronous frequency** (50 ms frame duration).
+Each vehicle in the simulation carries an independent virtual sensor registry modeling Formula 1 telemetry acquisition:
 
-| Parameter Field | JSON Key | Physical Unit | Range | Source Subsystem | Description |
-|---|---|---|---|---|---|
-| **Timestamp** | `timestamp_ms` | Milliseconds | Unix ms | Telemetry Clock | Master clock reference for time-series correlation |
-| **Speed** | `speed_kmh` | $\text{km/h}$ | $0.0 - 365.0$ | Kinematics Core | Forward linear velocity |
-| **Engine RPM** | `engine_rpm` | $\text{RPM}$ | $4,000 - 15,200$ | Powertrain Model | Crankshaft rotational speed |
-| **Gear** | `gear` | Integer | $0 - 8$ | Gearbox Model | Transmission gear position ($0 = \text{Neutral}$) |
-| **Throttle** | `throttle_pct` | $\%$ | $0 - 100$ | Driver Input / AI | Accelerator pedal position |
-| **Brake Pressure** | `brake_pct` | $\%$ | $0 - 100$ | Driver Input / AI | Master cylinder hydraulic line pressure |
-| **Steering Angle** | `steering_angle_deg`| Degrees ($^\circ$) | $-22.0^\circ \text{ to } +22.0^\circ$ | Driver Input / AI | Front steering rack displacement angle |
-| **Longitudinal G** | `longitudinal_g` | $\text{G} \ (\times 9.81 \text{ m/s}^2)$ | $-5.5\text{G} \text{ to } +2.2\text{G}$ | Dynamics Core | Acceleration ($+$) and braking deceleration ($-$) |
-| **Lateral G** | `lateral_g` | $\text{G} \ (\times 9.81 \text{ m/s}^2)$ | $-4.8\text{G} \text{ to } +4.8\text{G}$ | Dynamics Core | Centripetal cornering force ($+$ Right, $-$ Left) |
-| **Gyro Yaw Rate** | `gyro_z_dps` | $\text{deg/s}$ | $-120 \text{ to } +120$ | Dynamics Core | Angular yaw velocity about vertical axis |
-| **Wheel Slip** | `wheel_slip_pct` | $\%$ | $0.0 - 100.0\%$ | Tire Friction Model | Longitudinal wheelspin or braking lockup |
-| **DRS Flap** | `drs_status` | String | `"OPEN"` / `"CLOSED"` | Aero Subsystem | Drag Reduction System flap status |
-| **ERS Battery** | `ers_soc_pct` | $\%$ | $0.0 - 100.0\%$ | Hybrid MGU-K Model | Hybrid Energy Recovery System battery charge |
-| **Fuel Mass** | `fuel_remaining_kg`| $\text{kg}$ | $0.0 - 110.0$ | Fuel Flow Model | Onboard remaining fuel mass |
-| **Engine Temp** | `engine_temp_c` | $^\circ\text{C}$ | $60.0 - 130.0$ | Radiator Thermal Model| Internal combustion engine coolant fluid temp |
-| **Tire Temp FL** | `tires.fl_temp_c`| $^\circ\text{C}$ | $60.0 - 135.0$ | Tire Pyro Model | Front-Left tire carcass/bulk temperature |
-| **Tire Temp FR** | `tires.fr_temp_c`| $^\circ\text{C}$ | $60.0 - 135.0$ | Tire Pyro Model | Front-Right tire carcass/bulk temperature |
-| **Tire Temp RL** | `tires.rl_temp_c`| $^\circ\text{C}$ | $60.0 - 135.0$ | Tire Pyro Model | Rear-Left tire carcass/bulk temperature |
-| **Tire Temp RR** | `tires.rr_temp_c`| $^\circ\text{C}$ | $60.0 - 135.0$ | Tire Pyro Model | Rear-Right tire carcass/bulk temperature |
-| **Tire Wear** | `tires.avg_wear_pct`| $\%$ | $0.0 - 100.0\%$ | Tire Degradation Model| Tread rubber wear degradation |
-| **Brake Disc FL**| `brakes.fl_temp_c`| $^\circ\text{C}$ | $200 - 1,150$ | Brake Thermal Model | Front-Left carbon-carbon rotor temp |
-| **Brake Disc FR**| `brakes.fr_temp_c`| $^\circ\text{C}$ | $200 - 1,150$ | Brake Thermal Model | Front-Right carbon-carbon rotor temp |
-| **Lap Number** | `lap_number` | Count | $1 - N$ | Timing Transponder | Active lap number |
-| **Lap Time** | `lap_time_s` | Seconds | $0.000 - 180.000$ | Timing Transponder | Elapsed lap time timer |
-| **Lap Delta** | `delta_s` | Seconds ($\pm$) | $-9.999 \text{ to } +9.999$ | Benchmark Delta | Time difference vs personal best reference lap |
-| **Sector** | `current_sector` | Integer | $1, 2, 3$ | Spline Sector Split | Current track sector position |
-| **Track Distance**| `track_distance_m`| Meters | $0 - 5,793$ | Curvilinear Spline | Distance traveled along Monza spline centerline |
-| **Vehicle Status**| `status` | Enum | `NORMAL, WARN, CRIT` | Diagnostic Rule Engine| Subsystem health state |
+| Sensor ID | Sensor Name | Subsystem | Unit | Rate (Hz) | Normal Range | Warn / Crit Threshold | Source Physics Property |
+|---|---|---|---|---|---|---|---|
+| **`SPD-01`** | Vehicle Speed Hall Effect | Kinematics | km/h | 20 | 0 – 360 | >360 / >380 | `physics.speedKmh` |
+| **`RPM-01`** | Crankshaft Engine Speed | Powertrain | RPM | 20 | 4,000 – 14,800 | >14,500 / >15,200 | `physics.rpm` |
+| **`ENG-T01`** | Cylinder Coolant RTD | Thermal | °C | 10 | 85 – 105 | >106 / >115 | `physics.engineTemp_C` |
+| **`TIRE-FL-01`** | Front-Left Tyre Optical IR | Tyres | °C | 20 | 80 – 110 | >112 / >122 | `physics.tires.fl.temp` |
+| **`TIRE-FR-01`** | Front-Right Tyre Optical IR | Tyres | °C | 20 | 80 – 110 | >112 / >122 | `physics.tires.fr.temp` |
+| **`TIRE-RL-01`** | Rear-Left Tyre Optical IR | Tyres | °C | 20 | 85 – 115 | >115 / >125 | `physics.tires.rl.temp` |
+| **`TIRE-RR-01`** | Rear-Right Tyre Optical IR | Tyres | °C | 20 | 85 – 115 | >115 / >125 | `physics.tires.rr.temp` |
+| **`TPMS-01`** | Front-Left Tyre Pressure | Tyres | bar | 10 | 1.45 – 1.85 | <1.45 / <1.25 | `physics.tires.fl.pressure_psi` |
+| **`TPMS-02`** | Front-Right Tyre Pressure | Tyres | bar | 10 | 1.45 – 1.85 | <1.45 / <1.25 | `physics.tires.fr.pressure_psi` |
+| **`TPMS-03`** | Rear-Left Tyre Pressure | Tyres | bar | 10 | 1.35 – 1.75 | <1.35 / <1.15 | `physics.tires.rl.pressure_psi` |
+| **`TPMS-04`** | Rear-Right Tyre Pressure | Tyres | bar | 10 | 1.35 – 1.75 | <1.35 / <1.15 | `physics.tires.rr.pressure_psi` |
+| **`BRK-T01`** | Front-Left Brake Rotor IR | Braking | °C | 20 | 320 – 800 | >840 / >980 | `physics.brakes.fl.temp` |
+| **`BRK-T02`** | Front-Right Brake Rotor IR | Braking | °C | 20 | 320 – 800 | >840 / >980 | `physics.brakes.fr.temp` |
+| **`BRK-T03`** | Rear-Left Brake Rotor IR | Braking | °C | 20 | 300 – 750 | >800 / >920 | `physics.brakes.rl.temp` |
+| **`BRK-T04`** | Rear-Right Brake Rotor IR | Braking | °C | 20 | 300 – 750 | >800 / >920 | `physics.brakes.rr.temp` |
+| **`ACC-01`** | Tri-Axial IMU Accelerometer | Kinematics | G | 50 | -5.5 – +2.5 | >5.2 / >6.0 | `physics.longitudinalG` |
+| **`GYR-01`** | Chassis Gyroscope (Yaw) | Kinematics | rad/s | 50 | -2.5 – +2.5 | >2.2 / >3.0 | `physics.angularVelocity` |
+| **`VIB-01`** | Suspension Vibration Piezo | Structural | mm/s | 20 | 1.0 – 6.0 | >12.0 / >18.0 | `physics.vibration_rms` |
+| **`GPS-01`** | Track Position Transponder | Navigation | m | 10 | 0 – 5,793 | N/A | `physics.trackDistance` |
+
+### Sensor Health States
+- **`ONLINE`**: Normal operating bounds.
+- **`WARNING`**: Operating reading outside nominal thermal/pressure envelope.
+- **`CRITICAL`**: Severe threshold breach hazard.
+- **`DISCONNECTED`**: Sensor disconnected; outputs `null` without altering physical values.
+- **`STUCK`**: Frozen on last sampled reading.
+- **`NOISY`**: Gaussian noise injected onto signal.
+- **`DELAYED`**: FIFO transmission buffer delay.
 
 ---
 
-## 2. Rule-Based Engineering Thresholds & Alert Matrix
+## 2. Telemetry Packet Schema (20 Hz Streaming)
 
-| Diagnostic Subsystem | Rule Condition | Severity | Log Message & Diagnostic Root Cause | Recommended Pitwall Engineering Action |
-|---|---|---|---|---|
-| **Powertrain Thermal** | $T_{\text{ice}} \ge 114.0^\circ\text{C}$ | `CRITICAL` | `CRITICAL: Engine overheating (>114°C)! Blown head gasket risk.` | Mandatory lift-and-coast before Turns 1 & 5. Pull out of dirty wake. |
-| **Powertrain Thermal** | $T_{\text{ice}} \ge 106.0^\circ\text{C}$ | `WARNING` | `Elevated ICE coolant temperature. High thermal strain.` | Short-shift at 13,000 RPM on main straight to lower heat flux. |
-| **Tire Degradation** | $T_{\text{tire}} \ge 112.0^\circ\text{C}$ | `WARNING` | `Tire blistering / thermal graining detected (>112°C). Grip loss ~20%.` | Reduce entry speed at high-speed sweeping corners. Avoid aggressive curbs. |
-| **Tire Operating Window** | $T_{\text{tire}} < 75.0^\circ\text{C}$ | `INFO` | `Tires below operating window (<75°C). Reduced braking grip.` | Weave on out-lap and brake hard to build tire carcass pressure and temperature. |
-| **Brake Rotors** | $T_{\text{rotor}} \ge 980.0^\circ\text{C}$ | `CRITICAL` | `CRITICAL: Brake fluid boiling & rotor glazing hazard (>980°C)!` | Move brake bias $2\%$ rearward; extend braking distance by $15\text{m}$. |
+Published for all 6 cars concurrently in `TELEMETRY_BATCH`:
+
+```json
+{
+  "car_id": "LEC",
+  "driver_name": "Charles Leclerc",
+  "team": "Scuderia Ferrari HP",
+  "car_index": 0,
+  "driver_number": 16,
+  "timestamp_ms": 1729618000050,
+  "sequence_number": 412,
+  "source": "simulation_physics_core",
+  
+  "speed": 348.6,
+  "speed_kmh": 348.6,
+  "RPM": 14250,
+  "engine_rpm": 14250,
+  "gear": 8,
+  "throttle": 1.00,
+  "throttle_pct": 100,
+  "brake": 0.00,
+  "brake_pct": 0,
+  "steering": 0.012,
+  "steering_angle_deg": 0.69,
+  "longitudinal_g": 0.42,
+  "lateral_g": -0.15,
+  "wheel_slip_pct": 2.4,
+  "drs_status": "OPEN",
+  "ers_soc_pct": 78,
+  "fuel_remaining_kg": 98.4,
+  
+  "engine_temperature": 101.4,
+  "engine_temp_c": 101.4,
+  "tires": {
+    "fl_temp_c": 94.2,
+    "fr_temp_c": 93.8,
+    "rl_temp_c": 96.1,
+    "rr_temp_c": 95.8,
+    "fl_pressure_bar": 1.55,
+    "fr_pressure_bar": 1.55,
+    "rl_pressure_bar": 1.41,
+    "rr_pressure_bar": 1.41,
+    "avg_wear_pct": 4.2
+  },
+  "brakes": {
+    "fl_temp_c": 412,
+    "fr_temp_c": 415,
+    "rl_temp_c": 320,
+    "rr_temp_c": 322
+  },
+  
+  "lap_number": 2,
+  "lap": 2,
+  "current_sector": 1,
+  "sector": 1,
+  "lap_time_s": 24.320,
+  "last_lap_time_s": 81.425,
+  "best_lap_time_s": 81.425,
+  "delta_s": -0.215,
+  "track_distance_m": 840,
+  
+  "status": "NORMAL",
+  "vehicle_status": "NORMAL",
+  "sensor_health": {
+    "total": 19,
+    "online": 19,
+    "warning": 0,
+    "critical": 0,
+    "disconnected": 0,
+    "faulty": 0
+  }
+}
+```
+
+---
+
+## 3. Remote Interventions Protocol
+
+Race engineer commands sent from Dashboard to Simulator:
+
+| Action | Parameters | Simulator Behavior | Execution Result |
+|---|---|---|---|
+| **`COOLING_MODE`** | `target_car_id` | Caps maximum throttle to 90%, increases radiator airspeed cooling efficiency | `{ coolingModeActive: true, engineTemp_C, throttleCeilingPct: 90 }` |
+| **`PIT_STOP`** | `target_car_id` | Installs fresh Pirelli tyres (0% wear, optimal 22.5/20.5 psi), bleeds brake discs to 350°C | `{ pitCompleted: true, tireWearPct: 0, pressuresPsi }` |
+| **`BRAKE_BIAS`** | `target_car_id`, `bias` | Adjusts master cylinder front/rear bias (e.g. 54% front) | `{ brakeBiasFront }` |
+| **`DAMPER_RECALIBRATION`** | `target_car_id` | Re-zeros suspension damper offsets, reduces structural vibration to 1.8 mm/s | `{ damperRecalibrated: true, vibration_rms: 1.8 }` |
+| **`LIFT_AND_COAST`** | `target_car_id` | Cuts throttle 80m prior to braking zone, lowering rotor peak heat by ~80°C | `{ liftAndCoastActive: true, coastDistance_m: 80 }` |
+| **`RESET_INTERVENTION`**| `target_car_id` | Restores standard powertrain and braking mapping | `{ interventionsReset: true }` |
+
+---
+
+## 4. Distinction Between Simulated, Measured, and Injected Metrics
+
+1. **Virtual vs. Physical Sensors**:
+   All 19 channels are simulated in software. They acquire state from mathematical differential equations modeling kinematics, thermodynamics, and aerodynamics. No physical ESP32 or CAN bus hardware is required.
+2. **Measured RTT vs. Injected Latency**:
+   - `measuredRttMs` is computed continuously via WebSocket PING/PONG message round-trip timestamps.
+   - `injectedLatencyMs` is an artificial delay buffer applied to simulate trackside telemetry radio dropouts.
+   - The system strictly keeps these values separate.
+3. **Local Tests vs. Browser Integration**:
+   - `test_monza_simulation.js` runs in headless Node.js using mocked DOM/WebGL contexts to verify pure physics and equations.
+   - `test-server.js` executes live network integration over real WebSocket client and server sockets.
+   - Interactive driving and 3D rendering are tested directly in modern web browsers (Chrome/Firefox/Edge).

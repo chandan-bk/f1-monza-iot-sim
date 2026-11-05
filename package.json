@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test-syntax.js && node test-server.js"
+    "test": "node test-syntax.js && node test-server.js && node test_monza_simulation.js"
   },
   "keywords": [
     "motorsport",
@@ -15,7 +15,6 @@
     "iot",
     "threejs",
     "three-dimensional-simulation",
-    "esp32",
     "engineering-analytics"
   ],
   "author": "Engineering Capstone Team",

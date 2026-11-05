@@ -219,75 +219,82 @@ class AIDriverController {
 
   // Official Monza Speed Profile (5,793 meters)
   calculateMonzaSpeed(dist) {
-    const trackLen = this.track.trackLength || 5793;
+    const trackLen = this.track && this.track.trackLength ? this.track.trackLength : 5793;
     const d = ((dist % trackLen) + trackLen) % trackLen;
+    let baseSpeed = 352.0;
 
     // 1. Rettifilo Main Straight (0 - 950m): 352 km/h
-    if (d < 950) return 352.0;
-
+    if (d < 950) {
+      baseSpeed = 352.0;
+    }
     // 2. Turn 1 Braking Zone (950 - 1100m): 352 -> 92 km/h
-    if (d >= 950 && d < 1100) {
+    else if (d >= 950 && d < 1100) {
       const t = (d - 950) / 150.0;
-      return 352.0 - (t * (352.0 - 92.0));
+      baseSpeed = 352.0 - (t * (352.0 - 92.0));
     }
-
     // 3. Variante del Rettifilo Chicane (1100 - 1350m): 92 -> 130 km/h progressive exit
-    if (d >= 1100 && d < 1350) {
+    else if (d >= 1100 && d < 1350) {
       const t = (d - 1100) / 250.0;
-      return 92.0 + (t * (130.0 - 92.0));
+      baseSpeed = 92.0 + (t * (130.0 - 92.0));
     }
-
     // 4. Curva Grande (Biassono) (1350 - 2150m): 150 -> 292 km/h sweeper
-    if (d >= 1350 && d < 2150) {
+    else if (d >= 1350 && d < 2150) {
       const t = (d - 1350) / 800.0;
-      return 150.0 + (t * (292.0 - 150.0));
+      baseSpeed = 150.0 + (t * (292.0 - 150.0));
     }
-
     // 5. Straight to Roggia (2150 - 2500m): 332 km/h
-    if (d >= 2150 && d < 2500) return 332.0;
-
+    else if (d >= 2150 && d < 2500) {
+      baseSpeed = 332.0;
+    }
     // 6. Roggia Braking Zone (2500 - 2640m): 332 -> 118 km/h
-    if (d >= 2500 && d < 2640) {
+    else if (d >= 2500 && d < 2640) {
       const t = (d - 2500) / 140.0;
-      return 332.0 - (t * (332.0 - 118.0));
+      baseSpeed = 332.0 - (t * (332.0 - 118.0));
     }
-
     // 7. Variante della Roggia Chicane (2640 - 2800m): 120 km/h
-    if (d >= 2640 && d < 2800) return 120.0;
-
+    else if (d >= 2640 && d < 2800) {
+      baseSpeed = 120.0;
+    }
     // 8. Chute to Lesmo 1 (2800 - 3020m): 172 km/h
-    if (d >= 2800 && d < 3020) return 172.0;
-
+    else if (d >= 2800 && d < 3020) {
+      baseSpeed = 172.0;
+    }
     // 9. Short link to Lesmo 2 (3020 - 3220m): 160 km/h
-    if (d >= 3020 && d < 3220) return 160.0;
-
+    else if (d >= 3020 && d < 3220) {
+      baseSpeed = 160.0;
+    }
     // 10. Curva del Serraglio & Banking Underpass (3220 - 4220m): 185 -> 340 km/h blast
-    if (d >= 3220 && d < 4220) {
+    else if (d >= 3220 && d < 4220) {
       const t = (d - 3220) / 1000.0;
-      return 185.0 + (t * (340.0 - 185.0));
+      baseSpeed = 185.0 + (t * (340.0 - 185.0));
     }
-
     // 11. Braking for Variante Ascari (4220 - 4360m): 340 -> 220 km/h
-    if (d >= 4220 && d < 4360) {
+    else if (d >= 4220 && d < 4360) {
       const t = (d - 4220) / 140.0;
-      return 340.0 - (t * (340.0 - 220.0));
+      baseSpeed = 340.0 - (t * (340.0 - 220.0));
     }
-
     // 12. Variante Ascari Chicane (4360 - 4600m): 228 km/h transition
-    if (d >= 4360 && d < 4600) return 228.0;
-
+    else if (d >= 4360 && d < 4600) {
+      baseSpeed = 228.0;
+    }
     // 13. Rettifilo Rettilineo / Back Straight (4600 - 5220m): 352 km/h blast
-    if (d >= 4600 && d < 5220) return 352.0;
-
+    else if (d >= 4600 && d < 5220) {
+      baseSpeed = 352.0;
+    }
     // 14. Braking for Curva Parabolica (5220 - 5360m): 352 -> 180 km/h
-    if (d >= 5220 && d < 5360) {
+    else if (d >= 5220 && d < 5360) {
       const t = (d - 5220) / 140.0;
-      return 352.0 - (t * (352.0 - 180.0));
+      baseSpeed = 352.0 - (t * (352.0 - 180.0));
+    }
+    // 15. Curva Parabolica (Alboreto) (5360 - 5793m): 180 km/h apex -> 275 km/h exit
+    else {
+      const t = (d - 5360) / (5793 - 5360);
+      baseSpeed = 180.0 + (t * (275.0 - 180.0));
     }
 
-    // 15. Curva Parabolica (Alboreto) (5360 - 5793m): 180 km/h apex -> 275 km/h exit
-    const t = (d - 5360) / (5793 - 5360);
-    return 180.0 + (t * (275.0 - 180.0));
+    const topBias = (this.profile && this.profile.topSpeedBias) ? this.profile.topSpeedBias : 0;
+    const cornerPace = (this.profile && this.profile.cornerPace) ? this.profile.cornerPace : 1.0;
+    return (baseSpeed + topBias) * cornerPace;
   }
 
   // Base Racing Line Apex Offsets along Monza circuit (clipping curbs)

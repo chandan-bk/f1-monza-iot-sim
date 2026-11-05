@@ -11,11 +11,13 @@
 
 Formula 1 and modern top-tier motorsport represent the pinnacle of **Internet of Things (IoT) edge telemetry and stream analytics**. During a Grand Prix weekend, a modern Formula 1 car acts as a high-speed IoT sensor network, generating over **1.1 billion telemetry data points** (~3GB per car per race) streamed across ATLAS / MoTeC pitwall telemetry systems.
 
-This project was built to deliver a comprehensive, interactive demonstration of **IoT in Motorsport** for academic capstone presentation. It pairs a high-fidelity 3D racing simulation of the iconic **Autodromo Nazionale Monza** with a real-time **20 Hz IoT Telemetry Pipeline**, featuring:
-- Autonomous 6-Car Competitive AI Racing with Curvilinear Track Stabilization (Zero off-track anomalies).
-- Multi-Car Telemetry Channel Selector (Switch real-time sensor streams across Charles Leclerc, Max Verstappen, Lewis Hamilton, Lando Norris, Fernando Alonso, and Pierre Gasly).
-- Real-Time Telemetry Pipeline (20Hz Synchronous Streaming over WebSockets & REST Gateway).
-- Live Race Engineer Diagnostics Engine (Brake fade detection, Pirelli tire thermal degradation, DRS activation verification, MGU-K energy harvesting).
+This project delivers a comprehensive, interactive software simulation of **IoT in Motorsport** for academic capstone presentation. It pairs a high-fidelity 3D racing simulation of the iconic **Autodromo Nazionale Monza** with a real-time **20 Hz IoT Telemetry Pipeline**, featuring:
+- **Autonomous 6-Car Competitive AI Racing**: 6 independent vehicle physics instances with distinct team power/drag curves and driver racecraft profiles.
+- **Six Simultaneous Telemetry Streams**: Streams all 6 cars concurrently across WebSockets, allowing the race engineer to inspect any car without restricting background transmission.
+- **19-Channel Virtual Sensor Registry**: Dedicated virtual sensor layer with independent health states (`ONLINE`, `WARNING`, `CRITICAL`, `DISCONNECTED`, `STUCK`, `NOISY`).
+- **Dual-Device Role Architecture**: Distinct `SIM` and `DASHBOARD` client registration with session-based command authentication.
+- **Remote Interventions & Fault Injections**: Closed-loop control enabling the race engineer on the dashboard to execute cooling mode, pit stops, brake bias changes, or inject faults with real execution acknowledgements.
+- **Measured vs. Injected Network Metrics**: Real continuous PING/PONG round-trip latency (RTT) tracking clearly distinguished from simulated latency and packet loss.
 
 ---
 
@@ -23,107 +25,84 @@ This project was built to deliver a comprehensive, interactive demonstration of 
 
 | Domain | Existing Real-World Motorsport IoT | Our Project Modification & Innovation |
 |---|---|---|
-| **Sensor Network Topology** | Centralized CAN-FD bus connected to McLaren Applied TAG-320 ECU; complex wired looms adding 1.5–2.5 kg weight. | **Dual-Gateway Hybrid IoT Architecture**: Modular edge telemetry nodes with synchronous 20Hz WebSocket streaming + REST fallback ingest. |
-| **Telemetry Ingest & Latency** | Proprietary microwave radio burst telemetry (ATLAS) with 200–500ms delay to garage pitwalls. | **Sub-50ms Real-Time Web Telemetry**: Bi-directional WebSockets streaming JSON telemetry frames at 20 Hz, accessible concurrently by race engineers on any browser/tablet. |
-| **Driver Assistance & Autonomy** | Driver-in-the-Loop (DiL) proprietary simulators costing millions, restricted to factory supercomputers. | **Browser-Native Curvilinear Autonomous AI**: Mathematically bounded track-spline physics with lookahead chicane braking, drafting, and overtaking—guaranteeing 100% collision-free, on-track realism. |
-| **Edge Fault Detection** | Post-lap telemetry analysis by human race engineers looking at historical telemetry charts. | **Automated Real-Time Rule Engine**: Continuous edge anomaly detection running at 20Hz, instantly generating race engineer alerts (e.g. *Brake Disc Temp > 850°C*, *Pirelli Tire Blistering Hazard*, *DRS Gap < 1.0s*). |
-| **Telemetry Accessibility** | Multi-million dollar proprietary setups (McLaren ATLAS, MoTeC). | **Browser-Native IoT Simulation**: Open web-standard WebSocket and REST pipeline streaming real physics telemetry at 20Hz without proprietary hardware. |
+| **Sensor Network Topology** | Centralized CAN-FD bus connected to McLaren Applied TAG-320 ECU; complex wired looms adding 1.5–2.5 kg weight. | **19-Channel Decoupled Virtual Sensor Layer**: Independent software sensors with individual health states (`DISCONNECTED`, `STUCK`, `NOISY`) decoupled from underlying vehicle physics. |
+| **Telemetry Ingest & Latency** | Proprietary microwave radio burst telemetry (ATLAS) with 200–500ms delay to garage pitwalls. | **Dual-Role Web Gateway**: Bi-directional WebSockets streaming JSON telemetry frames for all 6 cars concurrently at 20 Hz, accessible concurrently on desktop and mobile. |
+| **Driver Assistance & Autonomy** | Driver-in-the-Loop (DiL) proprietary simulators costing millions, restricted to factory supercomputers. | **Curvilinear Multi-Car AI**: Mathematically bounded track-spline physics with lookahead chicane braking, drafting, and overtaking—guaranteeing 100% collision-free, on-track realism. |
+| **Edge Fault Detection & Action** | Post-lap telemetry analysis by human race engineers looking at historical charts. | **Real-Time Edge Rule Engine & Remote Interventions**: 20Hz automated anomaly detection paired with closed-loop dashboard intervention commands (`COOLING_MODE`, `PIT_STOP`, `BRAKE_BIAS`). |
 
 ---
 
-## 🌟 3. Circuit Geometry: Autodromo Nazionale Monza
+## 📡 3. 20Hz IoT Telemetry Sensor Specification
 
-The simulation models the authentic 5,793-meter Monza layout:
-1. **Rettifilo Straight**: Flat-out 350+ km/h blast down the pit straight with DRS Zone 1.
-2. **Variante del Rettifilo (Turns 1 & 2)**: Violent 5.2G deceleration zone from 352 km/h down to 78 km/h. Brakes heat up to 950°C!
-3. **Curva Grande (Turn 3)**: High-speed sweeping right-hander taken at 285 km/h.
-4. **Variante della Roggia (Turns 4 & 5)**: Sharp chicane braking down to 114 km/h with high red/white kerb bounding.
-5. **Curva di Lesmo 1 & 2 (Turns 6 & 7)**: Double right-handers testing lateral tire grip ($G_y > 3.8\text{G}$).
-6. **Serraglio Straight & Historic 1955 Banking Overpass Bridge**: Speed build-up to 335 km/h passing beneath the legendary concrete banked oval bridge.
-7. **Variante Ascari (Turns 8, 9 & 10)**: Rapid left-right-left chicane taken at 225 km/h with aggressive kerb clipping.
-8. **Curva Parabolica / Curva Alboreto (Turn 11)**: Iconic long sweeping 180° turn feeding onto the main straight with DRS Zone 2.
-
----
-
-## 📡 4. 20Hz IoT Telemetry Sensor Specification
-
-Every 50ms (20 times per second), the simulation serializes a comprehensive IoT telemetry packet:
+Every 50ms (20 times per second), the simulation serializes a comprehensive 6-car telemetry packet:
 
 ```json
 {
-  "timestamp": 1729618000050,
-  "car_id": "LEC_16",
-  "driver": "Charles Leclerc",
+  "car_id": "LEC",
+  "driver_name": "Charles Leclerc",
   "team": "Scuderia Ferrari HP",
-  "speed_kmh": 348.6,
-  "engine_rpm": 14250,
+  "car_index": 0,
+  "timestamp_ms": 1729618000050,
+  "sequence_number": 412,
+  "speed": 348.6,
+  "RPM": 14250,
   "gear": 8,
-  "throttle_pct": 100.0,
-  "brake_pct": 0.0,
-  "drs_status": "OPEN",
-  "imu": {
-    "longitudinal_g": 0.42,
-    "lateral_g": -0.15,
-    "vertical_g": 1.02,
-    "yaw_rate_rads": 0.012
+  "throttle": 1.00,
+  "brake": 0.00,
+  "steering": 0.012,
+  "engine_temperature": 101.4,
+  "tires": {
+    "fl_temp_c": 94.2,
+    "fr_temp_c": 93.8,
+    "rl_temp_c": 96.1,
+    "rr_temp_c": 95.8,
+    "fl_pressure_bar": 1.55,
+    "fr_pressure_bar": 1.55,
+    "rl_pressure_bar": 1.41,
+    "rr_pressure_bar": 1.41
   },
-  "thermals": {
-    "engine_coolant_c": 102.4,
-    "brake_rotors_c": { "fl": 412, "fr": 415, "rl": 320, "rr": 322 },
-    "tire_surface_c": { "fl": 104.2, "fr": 105.1, "rl": 108.3, "rr": 107.9 }
+  "brakes": {
+    "fl_temp_c": 412,
+    "fr_temp_c": 415,
+    "rl_temp_c": 320,
+    "rr_temp_c": 322
   },
-  "hybrid_powertrain": {
-    "ers_soc_pct": 78.4,
-    "mgu_k_kw": -120.0,
-    "mgu_h_rpm": 98500
-  },
-  "track_position": {
-    "sector": 1,
-    "distance_m": 840.5,
-    "lap_number": 2,
-    "lap_time_s": 24.320
-  }
+  "lap": 2,
+  "sector": 1,
+  "vehicle_status": "NORMAL",
+  "sensor_health": { "online": 19, "warning": 0, "critical": 0, "disconnected": 0 }
 }
 ```
 
 ---
 
-## 🚀 5. Quick Start Instructions
+## 🚀 4. Quick Start & Testing
 
-### Option A: Local Node.js Telemetry Server (Full WebSocket + Ingest)
+### Running the Test Suite
 ```bash
-# 1. Clone repository
-git clone https://github.com/chandan-bk/f1-monza-iot-sim.git
-cd f1-monza-iot-sim
-
-# 2. Install dependencies (express, ws)
-npm install
-
-# 3. Start Telemetry Server & WebSocket Gateway
-npm start
-# (Server runs at http://localhost:3000)
+# Runs Syntax Validation, WebSocket Integration Tests, and Headless Physics Simulation Tests
+npm test
 ```
 
-### Option B: Zero-Install Static Browser Mode
-The simulation can be launched without installing any dependencies:
-- Simply open `index.html` or `public/index.html` in Google Chrome, Edge, Firefox, or Brave.
-- Also live on GitHub Pages!
+### Starting the Server
+```bash
+npm install
+npm start
+# Server listens at http://localhost:3000
+# WebSocket Gateway at ws://localhost:3000/telemetry-stream
+```
+
+### Interactive Controls
+| Key | Function |
+|---|---|
+| **`P`** | Toggle Autonomous AI Race |
+| **`1` – `6`** | Switch Monitored Car Channel (LEC, VER, HAM, NOR, ALO, GAS) |
+| **`C`** | Cycle Camera View (Cockpit, Chase, TV Broadcast) |
+| **`T`** | Cycle View Layout (Split Screen, Driver Only, Pitwall Only) |
+| **`W / A / S / D`** | Manual Driving Controls |
+| **`M`** | Mute / Unmute Audio Synthesizer |
 
 ---
 
-## 🎮 6. Interactive Controls & Hotkeys
-
-| Key | Function | Presentation Value |
-|---|---|---|
-| **`P`** | **Toggle Autonomous AI Race** | Lets professor watch hands-free multi-car AI racing while you present telemetry charts. |
-| **`1` – `6`** | **Switch Monitored Car Channel** | Switch live IoT telemetry between Leclerc (1), Verstappen (2), Hamilton (3), Norris (4), Alonso (5), Gasly (6). |
-| **`C`** | **Cycle Camera View** | Cockpit Driver POV (behind Halo) ⟷ Dynamic Chase Cam ⟷ Trackside TV Camera Towers. |
-| **`T`** | **Cycle View Layout** | Split Screen (3D + Pitwall) ⟷ Driver Focused ⟷ Pitwall Dashboard. |
-| **`W / A / S / D`** | **Manual Driving** | Take over manual control anytime to demonstrate driver-induced sensor variations. |
-| **`M`** | **Mute / Unmute Audio** | Procedural Web Audio V6 Turbo engine synthesizer with kerb rumble and turbo spool. |
-| **`CSV Button`** | **Export Telemetry** | Export all 20Hz samples into CSV for external analysis in Python, MATLAB, or Excel. |
-
----
-
-## ⚖️ 7. License
+## ⚖️ 5. License
 Academic Capstone Project & Open Source under the MIT License.

@@ -3,6 +3,7 @@ const path = require('path');
 
 const files = [
   'public/js/config.js',
+  'public/js/sensor-registry.js',
   'public/js/track.js',
   'public/js/car-model.js',
   'public/js/physics.js',
@@ -30,7 +31,7 @@ files.forEach(f => {
 });
 
 if (errors === 0) {
-  console.log('\n=== ALL 12 FRONTEND JAVASCRIPT MODULES VALIDATED WITHOUT SYNTAX ERRORS ===');
+  console.log(`\n=== ALL ${files.length} FRONTEND JAVASCRIPT MODULES VALIDATED WITHOUT SYNTAX ERRORS ===`);
   process.exit(0);
 } else {
   console.error(`\nFound ${errors} syntax errors.`);

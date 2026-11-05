@@ -247,7 +247,8 @@ class F1SimApp {
     const target = allCars[idx];
 
     if (this.telemetry && target) {
-      this.telemetry.setTargetPhysics(target.physics);
+      this.telemetry.setTargetPhysics(target.physics, idx);
+      this.telemetry.monitoredCarIndex = idx;
     }
     if (this.dashboard && target) {
       this.dashboard.setMonitoredCarIndex(idx, target.driver);

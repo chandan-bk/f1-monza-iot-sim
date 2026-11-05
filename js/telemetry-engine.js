@@ -4,364 +4,408 @@
  * Formula 1 IoT Telemetry & Race Simulator
  * ============================================================================
  * Handles:
- *  - 20Hz synchronous telemetry sampling and JSON packet formation
+ *  - 20Hz synchronous telemetry sampling and JSON packet formation for all 6 cars
+ *  - Standardized packet schema conforming to F1 IoT specification:
+ *      * car_id, driver_name, team, car_index, timestamp_ms, sequence_number
+ *      * speed, RPM, gear, throttle, brake, steering, engine_temperature
+ *      * 4 tyre temperatures, 4 tyre pressures, 4 brake temperatures
+ *      * lap and sector data, vehicle_status, sensor_health, sensors
  *  - Rolling time-series buffers for real-time charts
- *  - Lap-by-lap telemetry recording & sector delta comparisons
- *  - Rule-based alert and diagnostic recommendation engine
+ *  - Rule-based engineering alert & diagnostic recommendation engine
  * ============================================================================
  */
 
-class TelemetryEngine {
-  constructor(vehiclePhysics, track) {
-    this.physics = vehiclePhysics;
-    this.track = track;
-    this.config = window.F1_CONFIG;
-
-    this.sampleRateHz = this.config.IOT.SAMPLE_RATE_HZ; // 20 Hz
-    this.sampleIntervalMs = 1000 / this.sampleRateHz;   // 50 ms
-    this.lastSampleTimeMs = 0;
-
-    // Rolling Live Telemetry Buffer (for live graph rendering)
-    this.maxBufferSize = 300;
-    this.rollingBuffer = [];
-
-    // Lap Archive (stores full telemetry traces for completed laps)
-    this.lapArchives = {}; // { 1: [samples], 2: [samples] }
-    this.currentLapSamples = [];
-    this.referenceLapNumber = null;
-
-    // Engineering Event & Alert Log
-    this.eventLog = [];
-    this.maxEventLogs = 100;
-    this.activeAlerts = new Map(); // Key: alert ID, Value: alert object
-
-    // Analysis State
-    this.brakePointTurn1 = null;
-    this.lastBrakingDistance = 0;
-    this.lastEngineAlertTime = 0;
-    this.lastTireAlertTime = 0;
-    this.lastBrakeAlertTime = 0;
-    this.lastSlipAlertTime = 0;
-    this.lastTrackLimitTime = 0;
-    this.currentUrgentAlert = null;
-    this.punctureActive = false;
+(function(root, factory) {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory();
+  } else {
+    root.TelemetryEngine = factory();
   }
+}(typeof self !== 'undefined' ? self : this, function() {
 
-  setTargetPhysics(newPhysics) {
-    if (!newPhysics || this.physics === newPhysics) return;
-    this.physics = newPhysics;
-    this.rollingBuffer = [];
-    this.currentLapSamples = [];
-    this.activeAlerts.clear();
-    this.brakePointTurn1 = null;
-  }
+  class TelemetryEngine {
+    constructor(vehiclePhysics, track) {
+      this.physics = vehiclePhysics;
+      this.track = track;
+      this.config = (typeof window !== 'undefined' && window.F1_CONFIG) ? window.F1_CONFIG : {
+        IOT: { SAMPLE_RATE_HZ: 20 },
+        THRESHOLDS: {
+          ENGINE_TEMP: { WARNING_C: 106.0, CRITICAL_C: 115.0, MESSAGE_WARN: 'Elevated ICE coolant temperature.', MESSAGE_CRIT: 'CRITICAL: Engine overheating!' },
+          TIRE_TEMP: { COLD_C: 75.0, HOT_WARN_C: 112.0, HOT_CRIT_C: 122.0, MESSAGE_COLD: 'Tires cold.', MESSAGE_HOT: 'Tire blistering detected.' },
+          BRAKE_TEMP: { HOT_WARN_C: 840.0, HOT_CRIT_C: 1000.0, MESSAGE_WARN: 'Brake disc temperature spike.', MESSAGE_CRIT: 'CRITICAL: Brake fluid boiling!' },
+          WHEEL_SLIP: { TRACTION_ALERT: 0.22, MESSAGE: 'Longitudinal wheel spin on chicane exit.' },
+          LATERAL_G: { HIGH_G: 4.2, MESSAGE: 'Sustained high lateral loading.' }
+        }
+      };
 
-  update(currentSessionTimeMs) {
-    if (currentSessionTimeMs - this.lastSampleTimeMs < this.sampleIntervalMs) {
-      return null; // Awaiting next sampling interval
+      this.sampleRateHz = this.config.IOT ? this.config.IOT.SAMPLE_RATE_HZ : 20; // 20 Hz
+      this.sampleIntervalMs = 1000 / this.sampleRateHz;                           // 50 ms
+      this.lastSampleTimeMs = 0;
+
+      // Monitored Car Target Index
+      this.monitoredCarIndex = 0;
+
+      // Sequence numbers per car for transmission loss tracking
+      this.sequenceNumbers = {};
+
+      // Rolling Live Telemetry Buffer (for live graph rendering of monitored car)
+      this.maxBufferSize = 300;
+      this.rollingBuffer = [];
+
+      // Lap Archive
+      this.lapArchives = {};
+      this.currentLapSamples = [];
+      this.referenceLapNumber = null;
+
+      // Engineering Event & Alert Log
+      this.eventLog = [];
+      this.maxEventLogs = 100;
+      this.activeAlerts = new Map();
+
+      // Analysis State
+      this.brakePointTurn1 = null;
+      this.lastBrakingDistance = 0;
+      this.lastEngineAlertTime = 0;
+      this.lastTireAlertTime = 0;
+      this.lastBrakeAlertTime = 0;
+      this.lastSlipAlertTime = 0;
+      this.lastTrackLimitTime = 0;
+      this.currentUrgentAlert = null;
+      this.punctureActive = false;
     }
 
-    this.lastSampleTimeMs = currentSessionTimeMs;
-    if (this.punctureActive && this.physics && this.physics.tires && this.physics.tires.fl && this.physics.tires.fl.pressure > 1.05) {
-      this.physics.tires.fl.pressure -= 0.003;
+    setTargetPhysics(newPhysics, carIndex = 0) {
+      if (!newPhysics || this.physics === newPhysics) return;
+      this.physics = newPhysics;
+      this.monitoredCarIndex = carIndex;
+      this.rollingBuffer = [];
+      this.currentLapSamples = [];
+      this.activeAlerts.clear();
+      this.brakePointTurn1 = null;
     }
 
-    // 1. Capture Raw Simulation Physics State into Telemetry Frame
-    const packet = this.buildTelemetryPacket(currentSessionTimeMs);
+    update(currentSessionTimeMs) {
+      if (currentSessionTimeMs - this.lastSampleTimeMs < this.sampleIntervalMs) {
+        return null;
+      }
 
-    // 2. Append to Rolling Live Buffer
-    this.rollingBuffer.push(packet);
-    if (this.rollingBuffer.length > this.maxBufferSize) {
-      this.rollingBuffer.shift();
+      this.lastSampleTimeMs = currentSessionTimeMs;
+      if (this.punctureActive && this.physics && this.physics.tires && this.physics.tires.fl && this.physics.tires.fl.pressure_psi > 14.0) {
+        this.physics.tires.fl.pressure_psi -= 0.15;
+      }
+
+      // 1. Capture Raw Simulation Physics State into Telemetry Frame
+      const packet = this.buildTelemetryPacket(this.physics, currentSessionTimeMs, this.monitoredCarIndex);
+
+      // 2. Append to Rolling Live Buffer
+      this.rollingBuffer.push(packet);
+      if (this.rollingBuffer.length > this.maxBufferSize) {
+        this.rollingBuffer.shift();
+      }
+
+      // 3. Append to Current Lap Archive
+      this.currentLapSamples.push(packet);
+
+      // 4. Run Rule-Based Engineering Analysis Engine
+      this.evaluateEngineeringRules(packet, currentSessionTimeMs);
+
+      return packet;
     }
 
-    // 3. Append to Current Lap Archive
-    this.currentLapSamples.push(packet);
+    sampleAll(allCarsList, currentSessionTimeMs) {
+      if (currentSessionTimeMs - this.lastSampleTimeMs < this.sampleIntervalMs) {
+        return null;
+      }
 
-    // 4. Run Rule-Based Engineering Analysis Engine
-    this.evaluateEngineeringRules(packet, currentSessionTimeMs);
+      this.lastSampleTimeMs = currentSessionTimeMs;
+      const allPackets = [];
 
-    return packet;
-  }
+      allCarsList.forEach((car, idx) => {
+        const p = car.physics || car;
+        const pkt = this.buildTelemetryPacket(p, currentSessionTimeMs, idx);
+        allPackets.push(pkt);
 
-  buildTelemetryPacket(timestampMs) {
-    const p = this.physics;
-    const progress = p.trackProgress;
+        // If this is the active monitored car, feed rolling chart buffer and diagnostics
+        if (idx === this.monitoredCarIndex || p === this.physics) {
+          this.rollingBuffer.push(pkt);
+          if (this.rollingBuffer.length > this.maxBufferSize) {
+            this.rollingBuffer.shift();
+          }
+          this.currentLapSamples.push(pkt);
+          this.evaluateEngineeringRules(pkt, currentSessionTimeMs);
+        }
+      });
 
-    // Delta vs best reference lap at current track distance
-    const deltaSeconds = this.calculateDeltaAtDistance(progress.distance, p.currentLapTime);
-
-    return {
-      timestamp_ms: timestampMs,
-      source: "simulation_physics_core",
-      car_id: p.driver.id,
-      driver_name: p.driver.name,
-      team: p.driver.team,
-      
-      // Powertrain & Dynamics
-      speed_kmh: Number(p.speedKmh.toFixed(1)),
-      engine_rpm: Math.round(p.rpm),
-      gear: p.gear,
-      throttle_pct: Math.round(p.throttle * 100),
-      brake_pct: Math.round(p.brake * 100),
-      steering_angle_deg: Number(THREE.MathUtils.radToDeg(p.steerAngle).toFixed(2)),
-      longitudinal_g: Number(p.longitudinalG.toFixed(2)),
-      lateral_g: Number(p.lateralG.toFixed(2)),
-      wheel_slip_pct: Number((p.wheelSlip * 100).toFixed(1)),
-      drs_status: p.drsActive ? "OPEN" : "CLOSED",
-      ers_soc_pct: Number((p.ersBatterySoc * 100).toFixed(1)),
-      fuel_remaining_kg: Number(p.fuelRemaining_kg.toFixed(2)),
-
-      // Thermal Subsystems
-      engine_temp_c: Number(p.engineTemp_C.toFixed(1)),
-      tires: {
-        fl_temp_c: Number(p.tires.fl.temp.toFixed(1)),
-        fr_temp_c: Number(p.tires.fr.temp.toFixed(1)),
-        rl_temp_c: Number(p.tires.rl.temp.toFixed(1)),
-        rr_temp_c: Number(p.tires.rr.temp.toFixed(1)),
-        fl_pressure_bar: Number(((p.tires.fl.pressure !== undefined ? p.tires.fl.pressure : 1.65)).toFixed(2)),
-        fr_pressure_bar: Number(((p.tires.fr.pressure !== undefined ? p.tires.fr.pressure : 1.65)).toFixed(2)),
-        rl_pressure_bar: Number(((p.tires.rl.pressure !== undefined ? p.tires.rl.pressure : 1.45)).toFixed(2)),
-        rr_pressure_bar: Number(((p.tires.rr.pressure !== undefined ? p.tires.rr.pressure : 1.45)).toFixed(2)),
-        avg_wear_pct: Number(((p.tires.fl.wear + p.tires.fr.wear + p.tires.rl.wear + p.tires.rr.wear) / 4).toFixed(1))
-      },
-      brakes: {
-        fl_temp_c: Math.round(p.brakes.fl.temp),
-        fr_temp_c: Math.round(p.brakes.fr.temp),
-        rl_temp_c: Math.round(p.brakes.rl.temp),
-        rr_temp_c: Math.round(p.brakes.rr.temp)
-      },
-
-      // Race Timing & GPS
-      lap_number: p.lapCount,
-      lap_time_s: Number(p.currentLapTime.toFixed(3)),
-      last_lap_time_s: Number(p.lastLapTime.toFixed(3)),
-      best_lap_time_s: Number(p.bestLapTime.toFixed(3)),
-      delta_s: Number(deltaSeconds.toFixed(3)),
-      current_sector: progress.sector,
-      sector_1_time_s: Number(p.sector1Time.toFixed(3)),
-      sector_2_time_s: Number(p.sector2Time.toFixed(3)),
-      track_distance_m: Math.round(progress.distance),
-      track_progress_pct: Number((progress.u * 100).toFixed(2)),
-      lateral_offset_m: Number(progress.lateralOffset.toFixed(2)),
-      is_off_track: progress.isOffTrack,
-      is_on_kerb: progress.isOnKerb,
-      world_pos: {
-        x: Number(p.position.x.toFixed(1)),
-        y: Number(p.position.y.toFixed(1)),
-        z: Number(p.position.z.toFixed(1))
-      },
-
-      // Vehicle Status
-      status: this.getOverallVehicleStatus(p)
-    };
-  }
-
-  getOverallVehicleStatus(p) {
-    if (p.engineTemp_C > this.config.THRESHOLDS.ENGINE_TEMP.CRITICAL_C ||
-        p.brakes.fl.temp > this.config.THRESHOLDS.BRAKE_TEMP.HOT_CRIT_C) {
-      return "CRITICAL";
+      return {
+        timestamp_ms: currentSessionTimeMs,
+        cars: allPackets,
+        monitoredCarIndex: this.monitoredCarIndex,
+        monitoredPacket: allPackets[this.monitoredCarIndex] || allPackets[0]
+      };
     }
-    if (p.engineTemp_C > this.config.THRESHOLDS.ENGINE_TEMP.WARNING_C ||
-        p.tires.fl.temp > this.config.THRESHOLDS.TIRE_TEMP.HOT_WARN_C ||
-        p.tires.fr.temp > this.config.THRESHOLDS.TIRE_TEMP.HOT_WARN_C ||
-        p.wheelSlip > this.config.THRESHOLDS.WHEEL_SLIP.TRACTION_ALERT) {
-      return "WARNING";
-    }
-    return "NORMAL";
-  }
 
-  // Calculate live delta (+/- seconds) against reference lap at the same track distance
-  calculateDeltaAtDistance(currentDistance, currentLapTime) {
-    if (!this.referenceLapNumber || !this.lapArchives[this.referenceLapNumber]) {
+    buildTelemetryPacket(physicsInstance, timestampMs, carIndex = 0) {
+      const p = physicsInstance || this.physics;
+      const progress = p.trackProgress || {};
+      const d = p.driver || { id: 'LEC', code: 'LEC', name: 'Charles Leclerc', team: 'Scuderia Ferrari HP', number: 16 };
+      const carId = (d.code || d.id || `CAR-${carIndex}`).toUpperCase();
+
+      // Update sequence counter for this specific vehicle stream
+      this.sequenceNumbers[carId] = (this.sequenceNumbers[carId] || 0) + 1;
+      const seq = this.sequenceNumbers[carId];
+
+      // Delta vs best reference lap
+      const deltaSeconds = this.calculateDeltaAtDistance(progress.distance || 0, p.currentLapTime || 0);
+
+      // Virtual Sensor Registry extraction
+      let sensorHealthSummary = null;
+      let sensorReadings = null;
+      if (p.sensorRegistry) {
+        const sampled = p.sensorRegistry.sampleAll(p, timestampMs);
+        sensorHealthSummary = sampled.healthSummary;
+        sensorReadings = sampled.readings;
+      }
+
+      // Vehicle Operational Status
+      let vStatus = "NORMAL";
+      if (p.faults && (p.faults.engineOverheat || p.faults.tyreLeak || p.faults.brakeOverheat || p.faults.vibration)) {
+        vStatus = "FAULT_ACTIVE";
+      } else if (p.interventions && p.interventions.coolingMode) {
+        vStatus = "COOLING_MODE";
+      } else if (p.interventions && p.interventions.pitStop) {
+        vStatus = "PIT_STOP";
+      } else if (p.interventions && p.interventions.liftAndCoast) {
+        vStatus = "LIFT_AND_COAST";
+      } else if (this.getOverallVehicleStatus(p) !== 'NORMAL') {
+        vStatus = this.getOverallVehicleStatus(p);
+      }
+
+      const flBar = p.tires && p.tires.fl ? parseFloat(((p.tires.fl.pressure_psi || 22.5) * 0.0689476).toFixed(2)) : 1.55;
+      const frBar = p.tires && p.tires.fr ? parseFloat(((p.tires.fr.pressure_psi || 22.5) * 0.0689476).toFixed(2)) : 1.55;
+      const rlBar = p.tires && p.tires.rl ? parseFloat(((p.tires.rl.pressure_psi || 20.5) * 0.0689476).toFixed(2)) : 1.41;
+      const rrBar = p.tires && p.tires.rr ? parseFloat(((p.tires.rr.pressure_psi || 20.5) * 0.0689476).toFixed(2)) : 1.41;
+
+      return {
+        // Identification & Header
+        car_id: carId,
+        driver_name: d.name || 'Formula 1 Driver',
+        team: d.team || 'Scuderia Ferrari HP',
+        car_index: carIndex,
+        driver_number: d.number || 16,
+        timestamp_ms: timestampMs,
+        sequence_number: seq,
+        source: 'simulation_physics_core',
+
+        // Core Kinematics & Powertrain (Both standard & legacy naming)
+        speed: parseFloat((p.speedKmh || 0).toFixed(1)),
+        speed_kmh: parseFloat((p.speedKmh || 0).toFixed(1)),
+        RPM: Math.round(p.rpm || 800),
+        engine_rpm: Math.round(p.rpm || 800),
+        gear: p.gear || 1,
+        throttle: parseFloat((p.throttle || 0).toFixed(2)),
+        throttle_pct: Math.round((p.throttle || 0) * 100),
+        brake: parseFloat((p.brake || 0).toFixed(2)),
+        brake_pct: Math.round((p.brake || 0) * 100),
+        steering: parseFloat((p.steerAngle || 0).toFixed(3)),
+        steering_angle_deg: typeof THREE !== 'undefined' ? parseFloat(THREE.MathUtils.radToDeg(p.steerAngle || 0).toFixed(2)) : parseFloat(((p.steerAngle || 0) * 57.2958).toFixed(2)),
+        longitudinal_g: parseFloat((p.longitudinalG || 0).toFixed(2)),
+        lateral_g: parseFloat((p.lateralG || 0).toFixed(2)),
+        wheel_slip_pct: parseFloat(((p.wheelSlip || 0) * 100).toFixed(1)),
+        drs_status: p.drsActive ? 'OPEN' : 'CLOSED',
+        ers_soc_pct: Math.round((p.ersBatterySoc || 0.8) * 100),
+        fuel_remaining_kg: parseFloat((p.fuelRemaining_kg || 100).toFixed(2)),
+
+        // Thermal Subsystems
+        engine_temperature: parseFloat((p.engineTemp_C || 98).toFixed(1)),
+        engine_temp_c: parseFloat((p.engineTemp_C || 98).toFixed(1)),
+        tires: {
+          fl_temp_c: parseFloat((p.tires.fl.temp || 88).toFixed(1)),
+          fr_temp_c: parseFloat((p.tires.fr.temp || 88).toFixed(1)),
+          rl_temp_c: parseFloat((p.tires.rl.temp || 92).toFixed(1)),
+          rr_temp_c: parseFloat((p.tires.rr.temp || 92).toFixed(1)),
+          fl_pressure_bar: flBar,
+          fr_pressure_bar: frBar,
+          rl_pressure_bar: rlBar,
+          rr_pressure_bar: rrBar,
+          fl_pressure_psi: parseFloat((p.tires.fl.pressure_psi || 22.5).toFixed(1)),
+          fr_pressure_psi: parseFloat((p.tires.fr.pressure_psi || 22.5).toFixed(1)),
+          rl_pressure_psi: parseFloat((p.tires.rl.pressure_psi || 20.5).toFixed(1)),
+          rr_pressure_psi: parseFloat((p.tires.rr.pressure_psi || 20.5).toFixed(1)),
+          avg_wear_pct: parseFloat((((p.tires.fl.wear + p.tires.fr.wear + p.tires.rl.wear + p.tires.rr.wear) / 4) * 100).toFixed(1))
+        },
+        brakes: {
+          fl_temp_c: Math.round(p.brakes.fl.temp || 350),
+          fr_temp_c: Math.round(p.brakes.fr.temp || 350),
+          rl_temp_c: Math.round(p.brakes.rl.temp || 310),
+          rr_temp_c: Math.round(p.brakes.rr.temp || 310)
+        },
+
+        // Lap & Sector Timing
+        lap_number: p.lapCount || 1,
+        lap: p.lapCount || 1,
+        current_sector: progress.sector || 1,
+        sector: progress.sector || 1,
+        lap_time_s: parseFloat((p.currentLapTime || 0).toFixed(3)),
+        last_lap_time_s: parseFloat((p.lastLapTime || 0).toFixed(3)),
+        best_lap_time_s: parseFloat((p.bestLapTime || 0).toFixed(3)),
+        delta_s: parseFloat(deltaSeconds.toFixed(3)),
+        sector_1_time_s: parseFloat((p.sector1Time || 0).toFixed(3)),
+        sector_2_time_s: parseFloat((p.sector2Time || 0).toFixed(3)),
+        sector_3_time_s: parseFloat((p.sector3Time || 0).toFixed(3)),
+        track_distance_m: Math.round(progress.distance || p.trackDistance || 0),
+        track_progress_pct: parseFloat(((progress.u || 0) * 100).toFixed(2)),
+        lateral_offset_m: parseFloat((p.lateralOffset || 0).toFixed(2)),
+        is_off_track: !!progress.isOffTrack,
+        is_on_kerb: !!progress.isOnKerb,
+        world_pos: {
+          x: parseFloat(((p.position && p.position.x) || 0).toFixed(1)),
+          y: parseFloat(((p.position && p.position.y) || 0).toFixed(1)),
+          z: parseFloat(((p.position && p.position.z) || 0).toFixed(1))
+        },
+
+        // Status & IoT Diagnostics
+        status: vStatus,
+        vehicle_status: vStatus,
+        sensor_health: sensorHealthSummary,
+        sensors: sensorReadings
+      };
+    }
+
+    getOverallVehicleStatus(p) {
+      const thresh = this.config.THRESHOLDS;
+      if (!thresh) return "NORMAL";
+
+      if (p.engineTemp_C > thresh.ENGINE_TEMP.CRITICAL_C ||
+          p.brakes.fl.temp > thresh.BRAKE_TEMP.HOT_CRIT_C) {
+        return "CRITICAL";
+      }
+      if (p.engineTemp_C > thresh.ENGINE_TEMP.WARNING_C ||
+          p.tires.fl.temp > thresh.TIRE_TEMP.HOT_WARN_C ||
+          p.tires.fr.temp > thresh.TIRE_TEMP.HOT_WARN_C ||
+          p.wheelSlip > thresh.WHEEL_SLIP.TRACTION_ALERT) {
+        return "WARNING";
+      }
+      return "NORMAL";
+    }
+
+    calculateDeltaAtDistance(currentDistance, currentLapTime) {
+      if (!this.referenceLapNumber || !this.lapArchives[this.referenceLapNumber]) {
+        return 0.0;
+      }
+
+      const refSamples = this.lapArchives[this.referenceLapNumber];
+      let closestRef = refSamples[0];
+      let minDiff = Infinity;
+      for (let i = 0; i < refSamples.length; i++) {
+        const diff = Math.abs(refSamples[i].track_distance_m - currentDistance);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestRef = refSamples[i];
+        }
+      }
+
+      if (closestRef) {
+        return currentLapTime - closestRef.lap_time_s;
+      }
       return 0.0;
     }
 
-    const refSamples = this.lapArchives[this.referenceLapNumber];
-    // Find closest sample in reference lap by track distance
-    let closestRef = refSamples[0];
-    let minDiff = Infinity;
-    for (let i = 0; i < refSamples.length; i++) {
-      const diff = Math.abs(refSamples[i].track_distance_m - currentDistance);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestRef = refSamples[i];
+    onLapComplete(lapNumber) {
+      if (this.currentLapSamples.length > 0) {
+        this.lapArchives[lapNumber] = [...this.currentLapSamples];
+        if (!this.referenceLapNumber || lapNumber === 1) {
+          this.referenceLapNumber = lapNumber;
+        }
+        this.currentLapSamples = [];
       }
     }
 
-    if (closestRef) {
-      // Positive = slower than reference, Negative = faster (green)
-      return currentLapTime - closestRef.lap_time_s;
-    }
-    return 0.0;
-  }
+    evaluateEngineeringRules(packet, timestampMs) {
+      const t = this.config.THRESHOLDS;
+      if (!t) return;
 
-  // Lap Completion Hook
-  onLapComplete(lapNumber) {
-    if (this.currentLapSamples.length > 0) {
-      this.lapArchives[lapNumber] = [...this.currentLapSamples];
-      
-      // If no reference lap or if this is the fastest, set as reference
-      if (!this.referenceLapNumber || this.physics.lastLapTime <= this.physics.bestLapTime) {
-        this.referenceLapNumber = lapNumber;
+      // Rule 1: Engine Temperature Overheat
+      if (packet.engine_temp_c > t.ENGINE_TEMP.CRITICAL_C) {
+        if (timestampMs - this.lastEngineAlertTime > 8000) {
+          this.lastEngineAlertTime = timestampMs;
+          this.logEvent("CRITICAL", "POWERTRAIN", `${t.ENGINE_TEMP.MESSAGE_CRIT} (T=${packet.engine_temp_c}°C). Action: Shift to Cool Engine Mode immediately.`);
+        }
+      } else if (packet.engine_temp_c > t.ENGINE_TEMP.WARNING_C) {
+        if (timestampMs - this.lastEngineAlertTime > 10000) {
+          this.lastEngineAlertTime = timestampMs;
+          this.logEvent("WARNING", "POWERTRAIN", `${t.ENGINE_TEMP.MESSAGE_WARN} (T=${packet.engine_temp_c}°C). Action: Monitor radiator airflow.`);
+        }
       }
-      this.currentLapSamples = [];
 
-      this.logEvent(
-        "SUCCESS",
-        "TIMING",
-        `Lap ${lapNumber} completed: ${this.physics.lastLapTime.toFixed(3)}s. Sector times: S1: ${this.physics.sector1Time.toFixed(3)}s, S2: ${this.physics.sector2Time.toFixed(3)}s.`
-      );
-    }
-  }
-
-  // --------------------------------------------------------------------------
-  // ACTIVE IOT INCIDENT & STRATEGIC SCENARIOS (Faculty Presentation Tools)
-  // --------------------------------------------------------------------------
-  injectBrakeOverheat() {
-    if (!this.physics || !this.physics.brakes) return;
-    this.physics.brakes.fl.temp = 1025.0;
-    this.physics.brakes.fr.temp = 980.0;
-    this.currentUrgentAlert = {
-      type: "CRITICAL",
-      icon: "🚨",
-      title: "BRAKE ROTOR THERMAL RUNAWAY (1,025°C)",
-      desc: "Front-left rotor exceeds structural limit (950°C). Hydraulic fluid vaporization imminent!",
-      action: "ACTION REQUIRED: Lift & coast 100m into Turn 1. Adjust brake balance +2% rearward."
-    };
-    this.logEvent("CRITICAL", "BRAKES", "🚨 CRITICAL: FL Rotor 1025°C — Thermal Runaway! High risk of brake fade & fluid vaporization. Lift & coast immediately.");
-  }
-
-  injectSlowPuncture() {
-    if (!this.physics || !this.physics.tires) return;
-    if (!this.physics.tires.fl) this.physics.tires.fl = { temp: 88, wear: 0, pressure: 1.65 };
-    this.physics.tires.fl.pressure = 1.38;
-    this.physics.tires.fl.temp = 126.0;
-    this.punctureActive = true;
-    this.currentUrgentAlert = {
-      type: "CRITICAL",
-      icon: "⚠️",
-      title: "TPMS MICRO-LEAK DETECTED (1.38 bar)",
-      desc: "Front-left tire pressure falling at -0.06 bar/lap. Blowout hazard at 330 km/h on Parabolica!",
-      action: "ACTION REQUIRED: BOX BOX BOX THIS LAP for fresh Hard tires."
-    };
-    this.logEvent("CRITICAL", "TPMS", "⚠️ TPMS ALARM: Slow puncture on Front-Left (1.38 bar, norm 1.65). Pressure gradient -0.06 bar/s. Box this lap!");
-  }
-
-  triggerUndercutStrategy() {
-    if (!this.physics || !this.physics.tires) return;
-    this.physics.tires.fl.wear = 76.0;
-    this.physics.tires.fr.wear = 74.0;
-    this.currentUrgentAlert = {
-      type: "SUCCESS",
-      icon: "⏱️",
-      title: "UNDERCUT STRATEGY WINDOW OPEN",
-      desc: "Pirelli Soft tire degradation cliff reached (Wear 75%, Grip -22%). Delta to P2: +1.4s.",
-      action: "ACTION REQUIRED: Box this lap for Hard compound to execute undercut (+2.4s projected track gain)."
-    };
-    this.logEvent("SUCCESS", "STRATEGY", "⏱️ STRATEGY INSIGHT: Tire Cliff detected (Wear 75%). Undercut advantage +2.4s over rival. Pit window OPEN.");
-  }
-
-  triggerDrsAuthorization() {
-    if (!this.physics) return;
-    this.physics.drsActive = true;
-    this.currentUrgentAlert = {
-      type: "INFO",
-      icon: "⚡",
-      title: "DRS WING FLAP AUTHORIZED",
-      desc: "Trailing interval 0.68s < 1.00s at Detection Zone 2. Hydraulic flap opened on Rettifilo.",
-      action: "TELEMETRY STATUS: Aero drag reduced by 22%. Top speed increased by +16 km/h down main straight."
-    };
-    this.logEvent("INFO", "AERO", "⚡ DRS TELEMETRY: Gap 0.68s < 1.00s. Flap AUTHORIZED & OPEN. Top speed +16 km/h.");
-  }
-
-  // Rule-Based Engineering Analysis Logic
-  evaluateEngineeringRules(packet, timestampMs) {
-    const t = this.config.THRESHOLDS;
-
-    // Rule 1: Engine Coolant Temperature Analysis
-    if (packet.engine_temp_c >= t.ENGINE_TEMP.CRITICAL_C) {
-      if (timestampMs - this.lastEngineAlertTime > 6000) {
-        this.lastEngineAlertTime = timestampMs;
-        this.logEvent("CRITICAL", "POWERTRAIN", `${t.ENGINE_TEMP.MESSAGE_CRIT} (Measured: ${packet.engine_temp_c}°C)`);
+      // Rule 2: Tire Thermal Window
+      const maxTireTemp = Math.max(packet.tires.fl_temp_c, packet.tires.fr_temp_c, packet.tires.rl_temp_c, packet.tires.rr_temp_c);
+      if (maxTireTemp > t.TIRE_TEMP.HOT_WARN_C) {
+        if (timestampMs - this.lastTireAlertTime > 10000) {
+          this.lastTireAlertTime = timestampMs;
+          const hottestTire = packet.tires.fl_temp_c === maxTireTemp ? "FL" :
+                              packet.tires.fr_temp_c === maxTireTemp ? "FR" :
+                              packet.tires.rl_temp_c === maxTireTemp ? "RL" : "RR";
+          this.logEvent("WARNING", "TIRES", `${t.TIRE_TEMP.MESSAGE_HOT} Max tire: ${hottestTire} @ ${maxTireTemp}°C. Action: Avoid aggressive curb impact.`);
+        }
       }
-    } else if (packet.engine_temp_c >= t.ENGINE_TEMP.WARNING_C) {
-      if (timestampMs - this.lastEngineAlertTime > 8000) {
-        this.lastEngineAlertTime = timestampMs;
-        this.logEvent("WARNING", "POWERTRAIN", `${t.ENGINE_TEMP.MESSAGE_WARN} (Measured: ${packet.engine_temp_c}°C, Threshold: ${t.ENGINE_TEMP.WARNING_C}°C). Action: Move out of dirty wake / slipstream.`);
+
+      // Rule 3: Brake Disc Rotor Thermal Peak
+      const maxBrakeTemp = Math.max(packet.brakes.fl_temp_c, packet.brakes.fr_temp_c);
+      if (maxBrakeTemp > t.BRAKE_TEMP.HOT_WARN_C) {
+        if (timestampMs - this.lastBrakeAlertTime > 8000) {
+          this.lastBrakeAlertTime = timestampMs;
+          this.logEvent("WARNING", "BRAKES", `${t.BRAKE_TEMP.MESSAGE_WARN} Peak rotor: ${maxBrakeTemp}°C. Action: Shift brake bias rearward.`);
+        }
+      }
+
+      // Rule 4: Traction / Wheel Slip Detection
+      if (packet.wheel_slip_pct > (t.WHEEL_SLIP.TRACTION_ALERT * 100)) {
+        if (timestampMs - this.lastSlipAlertTime > 5000) {
+          this.lastSlipAlertTime = timestampMs;
+          this.logEvent("INFO", "DYNAMICS", `${t.WHEEL_SLIP.MESSAGE} Wheel slip: ${packet.wheel_slip_pct}%.`);
+        }
+      }
+
+      // Rule 5: Turn 1 Braking Point Telemetry Logging
+      if (packet.track_distance_m >= 920 && packet.track_distance_m <= 1060 && packet.brake_pct > 50) {
+        if (!this.brakePointTurn1) {
+          this.brakePointTurn1 = packet.track_distance_m;
+          this.logEvent("INFO", "TELEMETRY", `Turn 1 Braking initiated at ${this.brakePointTurn1}m (Speed: ${packet.speed_kmh} km/h, Decel: ${packet.longitudinal_g}G).`);
+        }
+      } else if (packet.track_distance_m < 200 && this.brakePointTurn1) {
+        this.brakePointTurn1 = null;
+      }
+
+      // Rule 6: Track Limits Enforcement
+      if (packet.is_off_track) {
+        if (timestampMs - this.lastTrackLimitTime > 5000) {
+          this.lastTrackLimitTime = timestampMs;
+          this.logEvent("WARNING", "STEWARD", `Track Limits Exceeded in Sector ${packet.current_sector} (Offset: ${packet.lateral_offset_m}m). Grip reduction active.`);
+        }
       }
     }
 
-    // Rule 2: Tire Thermal Degradation & Blistering
-    const maxTireTemp = Math.max(packet.tires.fl_temp_c, packet.tires.fr_temp_c, packet.tires.rl_temp_c, packet.tires.rr_temp_c);
-    if (maxTireTemp > t.TIRE_TEMP.HOT_WARN_C) {
-      if (timestampMs - this.lastTireAlertTime > 8000) {
-        this.lastTireAlertTime = timestampMs;
-        const hottestTire = packet.tires.fl_temp_c === maxTireTemp ? "FL" :
-                            packet.tires.fr_temp_c === maxTireTemp ? "FR" :
-                            packet.tires.rl_temp_c === maxTireTemp ? "RL" : "RR";
-        this.logEvent("WARNING", "TIRES", `${t.TIRE_TEMP.MESSAGE_HOT} Max tire: ${hottestTire} @ ${maxTireTemp}°C. Action: Avoid aggressive curb impact.`);
-      }
-    }
+    logEvent(severity, subsystem, message) {
+      const timeStr = new Date().toTimeString().split(' ')[0] + '.' + Math.floor((Date.now() % 1000) / 100);
+      const event = {
+        id: Date.now() + Math.random(),
+        time: timeStr,
+        timestamp_ms: Date.now(),
+        severity: severity,
+        subsystem: subsystem,
+        message: message
+      };
 
-    // Rule 3: Brake Disc Rotor Thermal Peak
-    const maxBrakeTemp = Math.max(packet.brakes.fl_temp_c, packet.brakes.fr_temp_c);
-    if (maxBrakeTemp > t.BRAKE_TEMP.HOT_WARN_C) {
-      if (timestampMs - this.lastBrakeAlertTime > 8000) {
-        this.lastBrakeAlertTime = timestampMs;
-        this.logEvent("WARNING", "BRAKES", `${t.BRAKE_TEMP.MESSAGE_WARN} Peak rotor: ${maxBrakeTemp}°C. Action: Shift brake bias rearward.`);
+      this.eventLog.unshift(event);
+      if (this.eventLog.length > this.maxEventLogs) {
+        this.eventLog.pop();
       }
-    }
 
-    // Rule 4: Traction / Wheel Slip Detection
-    if (packet.wheel_slip_pct > (t.WHEEL_SLIP.TRACTION_ALERT * 100)) {
-      if (timestampMs - this.lastSlipAlertTime > 5000) {
-        this.lastSlipAlertTime = timestampMs;
-        this.logEvent("INFO", "DYNAMICS", `${t.WHEEL_SLIP.MESSAGE} Wheel slip: ${packet.wheel_slip_pct}%.`);
-      }
-    }
-
-    // Rule 5: Turn 1 Braking Point Telemetry Logging
-    // Chicane entry begins at distance ~650m-720m
-    if (packet.track_distance_m >= 920 && packet.track_distance_m <= 1060 && packet.brake_pct > 50) {
-      if (!this.brakePointTurn1) {
-        this.brakePointTurn1 = packet.track_distance_m;
-        this.logEvent("INFO", "TELEMETRY", `Turn 1 Braking initiated at ${this.brakePointTurn1}m (Speed: ${packet.speed_kmh} km/h, Decel: ${packet.longitudinal_g}G).`);
-      }
-    } else if (packet.track_distance_m < 200 && this.brakePointTurn1) {
-      this.brakePointTurn1 = null; // Reset for next lap
-    }
-
-    // Rule 6: Track Limits Enforcement
-    if (packet.is_off_track) {
-      if (timestampMs - this.lastTrackLimitTime > 5000) {
-        this.lastTrackLimitTime = timestampMs;
-        this.logEvent("WARNING", "STEWARD", `Track Limits Exceeded in Sector ${packet.current_sector} (Offset: ${packet.lateral_offset_m}m). Grip reduction active.`);
+      if (severity === 'CRITICAL' && typeof window !== 'undefined' && window.f1Audio) {
+        window.f1Audio.playPitRadioAlert();
       }
     }
   }
 
-  logEvent(severity, subsystem, message) {
-    const timeStr = new Date().toTimeString().split(' ')[0] + '.' + Math.floor((Date.now() % 1000) / 100);
-    const event = {
-      id: Date.now() + Math.random(),
-      time: timeStr,
-      timestamp_ms: Date.now(),
-      severity: severity, // 'INFO' | 'WARNING' | 'CRITICAL' | 'SUCCESS'
-      subsystem: subsystem, // 'POWERTRAIN' | 'TIRES' | 'BRAKES' | 'TIMING' | 'STEWARD'
-      message: message
-    };
-
-    this.eventLog.unshift(event);
-    if (this.eventLog.length > this.maxEventLogs) {
-      this.eventLog.pop();
-    }
-
-    // Also trigger audio beep if critical
-    if (severity === 'CRITICAL' && window.f1Audio) {
-      window.f1Audio.playPitRadioAlert();
-    }
-  }
-}
-
-window.TelemetryEngine = TelemetryEngine;
+  return TelemetryEngine;
+}));
